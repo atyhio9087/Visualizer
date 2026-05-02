@@ -31,7 +31,7 @@ html, body {
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 2px;
   width: min(480px, 90vw);
-  padding: 64px 48px;
+  padding: 64px 48px 40px;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
@@ -56,6 +56,38 @@ html, body {
   pointer-events: none;
 }
 #file-input { display: none; }
+
+/* SAMPLE TRACKS */
+.sample-divider {
+  margin: 24px 0 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 20px;
+}
+.sample-divider span {
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.2); white-space: nowrap; width: 100%; text-align: center;
+}
+.sample-tracks {
+  display: flex; gap: 8px; justify-content: center;
+}
+.sample-btn {
+  flex: 1; min-width: 0;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 2px; padding: 12px 10px;
+  cursor: pointer; display: flex; flex-direction: column;
+  align-items: center; gap: 5px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.sample-btn:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.07); }
+.sample-btn:active { background: rgba(255,255,255,0.1); }
+.sample-glyph { font-size: 16px; opacity: 0.5; }
+.sample-name {
+  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: rgba(255,255,255,0.6); font-weight: 400;
+}
+.sample-vibe { font-size: 9px; color: rgba(255,255,255,0.22); letter-spacing: 0.06em; }
 
 /* ANALYSIS SCREEN */
 #analysis-screen { gap: 20px; }
@@ -336,6 +368,26 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
     <span class="drop-glyph">◎ ◈ ◉</span>
     <div class="drop-headline">Drop your audio file</div>
     <div class="drop-sub">MP3 · WAV · FLAC · OGG · M4A<br>Sentiment analysis included</div>
+    <div class="sample-divider">
+      <span>or try a sample</span>
+    </div>
+    <div class="sample-tracks">
+      <div class="sample-btn" data-src="/samples/ambient.mp3" data-name="ambient.mp3">
+        <span class="sample-glyph">〜</span>
+        <span class="sample-name">Ambient</span>
+        <span class="sample-vibe">serene</span>
+      </div>
+      <div class="sample-btn" data-src="/samples/energetic.mp3" data-name="energetic.mp3">
+        <span class="sample-glyph">⚡</span>
+        <span class="sample-name">Energetic</span>
+        <span class="sample-vibe">euphoric</span>
+      </div>
+      <div class="sample-btn" data-src="/samples/dark.mp3" data-name="dark.mp3">
+        <span class="sample-glyph">◈</span>
+        <span class="sample-name">Dark</span>
+        <span class="sample-vibe">tense</span>
+      </div>
+    </div>
   </div>
   <input type="file" id="file-input" accept="audio/*">
 </div>
@@ -542,12 +594,7 @@ let W, H;
 const UI_HEIGHT = 110;
 
 function getAdaptiveGrid() {
-  // Target a square-ish cell. On wide screens use more columns, fewer rows.
-  // Base: ~24px cell size, scale from that.
   const vizH = H - UI_HEIGHT;
-  const aspectRatio = W / vizH;
-
-  // Reference: a 600x600 square viewport gives ~20x20. Scale proportionally.
   const baseCell = Math.max(20, Math.min(W, vizH) / 26);
   const cols = Math.round(W / baseCell);
   const rows = Math.round(vizH / baseCell);
@@ -555,9 +602,7 @@ function getAdaptiveGrid() {
 }
 
 function getAdaptiveNoiseFreq() {
-  // Normalize noise frequency to screen size so patterns look the same at any resolution.
-  // On a wider/larger screen, we scale down frequency so cells aren't jittery.
-  const ref = 600; // reference dimension
+  const ref = 600;
   const dim = Math.max(W, H);
   return (P.noiseFreq * 0.001) * (ref / dim);
 }
@@ -565,7 +610,6 @@ function getAdaptiveNoiseFreq() {
 function resize() {
   W = canvas.width = glowCanvas.width = window.innerWidth;
   H = canvas.height = glowCanvas.height = window.innerHeight;
-  // Update home canvas too
   const hc = document.getElementById('home-canvas');
   if (hc) { hc.width = hc.offsetWidth; hc.height = hc.offsetHeight; }
 }
@@ -670,10 +714,9 @@ function noiseToHue(n) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  DYNAMIC PALETTE (NEW)
+//  DYNAMIC PALETTE
 // ═══════════════════════════════════════════════════════
 function generatePaletteFromAudio() {
-  // Normalize useful features
   const energy = (S.bass + S.low + S.mid) / 3;
   const brightness = (S.hi + S.air);
   const bass = S.bass;
@@ -681,18 +724,15 @@ function generatePaletteFromAudio() {
   const highs = S.hi;
   const noisiness = S.snare + S.cymbal;
 
-  // Base hue from frequency balance
   let baseHue =
-    bass * 20 +        // red/orange
-    mids * 140 +       // green
-    highs * 260;       // blue/purple
+    bass * 20 +
+    mids * 140 +
+    highs * 260;
 
   baseHue = baseHue % 360;
 
-  // Spread (how wide the palette is)
   const spread = 30 + noisiness * 120;
 
-  // Build palette
   return {
     hues: [
       baseHue,
@@ -753,7 +793,7 @@ const P = {
   thickMax:   18.0,
   trailFade:  4,
   alpha:      1.0,
-  autoGrid:   true,  // responsive grid
+  autoGrid:   true,
 };
 
 let panelOpen = false;
@@ -779,7 +819,6 @@ function buildPanel() {
     { key:'alpha',     label:'Opacity',     min:0.1,  max:1.0, step:0.02, fmt:v=>v.toFixed(2) },
   ];
 
-  // Auto grid toggle
   const autoRow = document.createElement('div');
   autoRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;';
   const autoLbl = document.createElement('div');
@@ -794,7 +833,6 @@ function buildPanel() {
   autoRow.appendChild(autoChk);
   panel.appendChild(autoRow);
 
-  // Manual grid controls only if auto is off
   if (!P.autoGrid) {
     const gridDefs = [
       { key:'cols', label:'Columns', min:5, max:50, step:1, fmt:v=>v|0 },
@@ -859,7 +897,7 @@ speedSlider.addEventListener('input', () => {
 });
 
 // ═══════════════════════════════════════════════════════
-//  VIZ 1: FLOW FIELD — fully responsive
+//  VIZ 1: FLOW FIELD
 // ═══════════════════════════════════════════════════════
 function drawFlowField() {
   ctx.fillStyle = '#000';
@@ -868,18 +906,15 @@ function drawFlowField() {
   peakFlash = Math.max(0, peakFlash - 0.05);
   if (S.bass > 0.72) peakFlash = 1;
 
-  // Adaptive grid: auto-size to screen, or manual from P
   const { cols: autoCols, rows: autoRows } = getAdaptiveGrid();
   const cols = P.autoGrid ? autoCols : Math.round(P.cols);
   const rows = P.autoGrid ? autoRows : Math.round(P.rows);
 
-  // Normalize noise frequency to screen size to avoid jitter on large screens
   const baseNoiseFreq = getAdaptiveNoiseFreq();
   const noiseFreq = baseNoiseFreq + S.mid * (baseNoiseFreq * 2);
   const timeSpeed = ((P.speed / 10) * 0.008) + S.bass * 0.012 + S.sub * 0.02;
   const ampScale  = P.amp * (0.8 + S.mid * 1.2 + S.hi * 0.6);
 
-  // Scale bar thickness relative to cell size so it looks consistent
   const vizH = H - UI_HEIGHT;
   const cellRef = Math.min(W / cols, vizH / rows);
   const thickBase = (P.thickMin / 20 * cellRef) + S.bass * (P.thickMax / 20 * cellRef) + S.sub * (P.thickMax / 20 * cellRef) * 0.5;
@@ -889,13 +924,11 @@ function drawFlowField() {
   t += timeSpeed;
   hueShift = (hueShift + 0.12 + S.mid * 0.6 * PALETTE.speedMult) % 360;
 
-  // Draw grid only in usable area, leaving bottom for UI
   const gridW = W * 0.9;
   const gridH = vizH * 0.9;
   const cellW = gridW / cols;
   const cellH = gridH / rows;
   const marginX = (W - gridW) * 0.5;
-  // const marginY = (vizH - gridH) * 0.5;
   const marginY = (vizH - gridH) * 0.5 + UI_HEIGHT * 0.25;
 
   for (let row = 0; row < rows; row++) {
@@ -903,7 +936,6 @@ function drawFlowField() {
       const cx = marginX + col * cellW + cellW * 0.5;
       const cy = marginY + row * cellH + cellH * 0.5;
 
-      // Normalize to 0..1 range before feeding to noise so scale is screen-independent
       const nx = (cx / W) * P.noiseFreq;
       const ny = (cy / vizH) * P.noiseFreq;
 
@@ -958,7 +990,6 @@ function getLayerAmp(lo, hi) {
   const a = Math.floor(lo * L), b = Math.floor(hi * L);
   let s = 0;
   for (let i = a; i < b; i++) s += freqData[i];
-  // return (s / Math.max(1, b - a)) / 255;
   return Math.pow((s / Math.max(1, b - a)) / 255, 0.8);
 }
 
@@ -983,21 +1014,13 @@ function drawLayers() {
 
   const order = [...Array(LAYER_DEFS.length).keys()].sort((a, b) => layerAmp[b] - layerAmp[a]);
   const targetBright = new Float32Array(LAYER_DEFS.length);
-  // order.forEach((li, rank) => { targetBright[li] = 1.0 - rank * 0.14; });
   order.forEach((li, rank) => {
-  const energy = layerAmp[li];
-
-  // base rank brightness
-  let b = 1.0 - rank * 0.14;
-
-  // add energy contribution (boosts low freq visibility)
-  b += energy * 0.5;
-
-  // enforce minimum visibility
-  b = Math.max(0.5, b);
-
-  targetBright[li] = Math.min(1.0, b);
-});
+    const energy = layerAmp[li];
+    let b = 1.0 - rank * 0.14;
+    b += energy * 0.5;
+    b = Math.max(0.5, b);
+    targetBright[li] = Math.min(1.0, b);
+  });
   for (let i = 0; i < LAYER_DEFS.length; i++) {
     layerBright[i] += (targetBright[i] - layerBright[i]) * 0.04;
   }
@@ -1006,8 +1029,6 @@ function drawLayers() {
     const energy = layerAmp[li];
     layerPhases[li] += 0.018 + energy * 0.10 * PALETTE.speedMult;
 
-    // Use vizH so layers sit in the visual area, not under the UI
-    // const cy = vizH * def.yFrac;
     const cy = vizH * def.yFrac + UI_HEIGHT * 0.55;
     const laneH = vizH * 0.048;
     const bm = layerBright[li];
@@ -1179,7 +1200,7 @@ function drawWarp() {
 // ═══════════════════════════════════════════════════════
 function render() {
   animFrame = requestAnimationFrame(render);
-   updateFaviconWave();
+  updateFaviconWave();
   if (!analyser) return;
   const raw = getBands();
   smoothBands(raw);
@@ -1215,66 +1236,49 @@ async function callLLM(prompt) {
 // ═══════════════════════════════════════════════════════
 
 function detectVibe(S) {
-  // --- Derived features ---
   const energy = (S.bass + S.low + S.mid) / 3;
   const brightness = (S.hi + S.air) / 2;
   const aggression = S.snare + S.cymbal;
   const warmth = S.bass + S.low;
   const clarity = S.vocal + S.string;
 
-  // --- Score system ---
   const score = {
-    energetic: 0,
-    melancholic: 0,
-    dreamy: 0,
-    euphoric: 0,
-    tense: 0,
-    serene: 0,
-    dark: 0,
-    psychedelic: 0,
+    energetic: 0, melancholic: 0, dreamy: 0, euphoric: 0,
+    tense: 0, serene: 0, dark: 0, psychedelic: 0,
   };
 
-  // --- Energetic ---
   score.energetic += energy * 1.2;
   score.energetic += brightness * 0.8;
   score.energetic += aggression * 0.6;
 
-  // --- Euphoric ---
   score.euphoric += energy * 1.0;
   score.euphoric += brightness * 0.6;
   score.euphoric += warmth * 0.5;
 
-  // --- Melancholic ---
   score.melancholic += (1 - energy) * 1.2;
   score.melancholic += (1 - brightness) * 0.8;
   score.melancholic += clarity * 0.5;
 
-  // --- Dreamy ---
   score.dreamy += S.air * 1.2;
   score.dreamy += clarity * 0.7;
   score.dreamy += (1 - aggression) * 0.5;
 
-  // --- Tense ---
   score.tense += aggression * 1.2;
   score.tense += brightness * 0.5;
   score.tense += energy * 0.4;
 
-  // --- Dark ---
   score.dark += (1 - brightness) * 1.0;
   score.dark += aggression * 0.6;
   score.dark += (1 - clarity) * 0.4;
 
-  // --- Serene ---
   score.serene += (1 - energy) * 1.2;
   score.serene += (1 - aggression) * 0.8;
   score.serene += S.air * 0.4;
 
-  // --- Psychedelic (fallback blend state) ---
   score.psychedelic += 0.3;
   score.psychedelic += Math.abs(S.mid - S.hi) * 0.5;
   score.psychedelic += brightness * 0.4;
 
-  // --- Pick best ---
   let best = "dreamy";
   let max = -Infinity;
 
@@ -1306,13 +1310,11 @@ euphoric, melancholic, energetic, dreamy, tense, serene, dark, psychedelic
 
   try {
     const llmVibe = await callLLM(prompt);
-
     if (llmVibe) {
       vibe = llmVibe.trim().toLowerCase();
     } else {
       throw new Error("Empty LLM response");
     }
-
   } catch (e) {
     console.log('LLM failed, using heuristic:', e.message);
     vibe = detectVibe(S);
@@ -1389,10 +1391,7 @@ async function loadAndPlay(file) {
   buildPanel();
 }
 
-// updateOllamaBadge('');
-
 // ── PLAY STATE ─────────────────────────────────────────
-// userPaused: true when the user explicitly paused (not end-of-track stop)
 let userPaused = false;
 
 function setPlayBtn(playing) {
@@ -1400,24 +1399,20 @@ function setPlayBtn(playing) {
 }
 
 function playFrom(offset) {
-  // Stop any existing source cleanly
   if (source) {
-    source.onended = null; // detach before stopping so it can't flip state
+    source.onended = null;
     try { source.stop(); } catch(e) {}
     source = null;
   }
   source = audioCtx.createBufferSource();
   source.buffer = audioBuffer;
   source.connect(analyser);
-  // analyser.connect(gainNode);
-  // Don't re-connect analyser→gainNode every time; it's already connected from initAudio
   source.start(0, Math.max(0, offset));
   startTime = audioCtx.currentTime - offset;
   isPlaying = true;
   userPaused = false;
   setPlayBtn(true);
   source.onended = () => {
-    // Only treat as natural end if we didn't stop it ourselves
     if (isPlaying && !userPaused) {
       isPlaying = false;
       pauseOffset = 0;
@@ -1430,7 +1425,6 @@ function togglePlay() {
   if (!audioBuffer || !audioCtx) return;
   if (audioCtx.state === 'suspended') audioCtx.resume();
   if (isPlaying) {
-    // Pause: capture position BEFORE stopping
     pauseOffset = audioCtx.currentTime - startTime;
     userPaused = true;
     isPlaying = false;
@@ -1458,7 +1452,7 @@ function updateProgress() {
   document.getElementById('time-lbl').textContent = `${fmt(elapsed)} / ${fmt(audioBuffer.duration)}`;
 }
 
-// ── PROGRESS BAR — YouTube-style scrubber ─────────────
+// ── PROGRESS BAR ──────────────────────────────────────
 let isScrubbing = false;
 let scrubWasPlaying = false;
 
@@ -1477,7 +1471,6 @@ let scrubWasPlaying = false;
     isScrubbing = true;
     scrubWasPlaying = isPlaying;
     wrap.classList.add('scrubbing');
-    // Pause playback during scrub to avoid gap/click artifacts
     if (isPlaying) {
       userPaused = true;
       isPlaying = false;
@@ -1499,18 +1492,15 @@ let scrubWasPlaying = false;
     if (!isScrubbing) return;
     isScrubbing = false;
     wrap.classList.remove('scrubbing');
-    // Resume playing from new position if it was playing before
     if (scrubWasPlaying) {
       playFrom(pauseOffset);
     }
   }
 
-  // Mouse
   wrap.addEventListener('mousedown', e => { e.preventDefault(); startScrub(e.clientX); });
   document.addEventListener('mousemove', e => { if (isScrubbing) applyScrub(e.clientX); });
   document.addEventListener('mouseup', () => endScrub());
 
-  // Touch
   wrap.addEventListener('touchstart', e => { startScrub(e.touches[0].clientX); }, { passive: true });
   document.addEventListener('touchmove', e => { if (isScrubbing) applyScrub(e.touches[0].clientX); }, { passive: true });
   document.addEventListener('touchend', () => endScrub());
@@ -1518,7 +1508,7 @@ let scrubWasPlaying = false;
 
 // ── VOLUME CONTROL ─────────────────────────────────────
 let currentVolume = 0.8;
-let prevVolume = 0.8; // for mute toggle
+let prevVolume = 0.8;
 let isVolScrubbing = false;
 
 (function() {
@@ -1530,7 +1520,6 @@ let isVolScrubbing = false;
     currentVolume = Math.max(0, Math.min(1, v));
     fill.style.width = (currentVolume * 100) + '%';
     if (gainNode) gainNode.gain.setTargetAtTime(currentVolume, audioCtx?.currentTime || 0, 0.01);
-    // Update icon
     if (currentVolume === 0) icon.textContent = '🔇';
     else if (currentVolume < 0.4) icon.textContent = '🔉';
     else icon.textContent = '🔊';
@@ -1541,7 +1530,6 @@ let isVolScrubbing = false;
     return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
   }
 
-  // Mute toggle on icon click
   icon.addEventListener('click', () => {
     if (currentVolume > 0) { prevVolume = currentVolume; setVolume(0); }
     else setVolume(prevVolume || 0.8);
@@ -1572,9 +1560,9 @@ let isVolScrubbing = false;
   }, { passive: true });
   document.addEventListener('touchend', () => { isVolScrubbing = false; wrap.classList.remove('scrubbing'); });
 
-  // Initial state
   setVolume(0.8);
 })();
+
 let mediaRecorder = null, recordedChunks = [];
 
 async function startRecording(withAudio) {
@@ -1620,7 +1608,7 @@ function stopRecording() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  UI AUTO-HIDE — works in normal and fullscreen modes
+//  UI AUTO-HIDE
 // ═══════════════════════════════════════════════════════
 let hideTimer;
 const UI_ELEMENTS = ['ui', 'mode-bar', 'speed-panel', 'tweak-toggle'];
@@ -1670,11 +1658,9 @@ document.getElementById('back-btn').addEventListener('click', () => {
   document.getElementById('ui').classList.add('hidden');
   document.getElementById('mode-bar').classList.add('hidden');
   document.getElementById('analysis-screen').classList.add('off');
-  // Restore drop screen and restart home animation
   document.getElementById('drop-screen').classList.remove('off');
   document.getElementById('file-input').value = '';
   hueShift = 0; t = 0; peakFlash = 0;
-  // Restart home canvas animation
   homeAnimActive = true;
   if (!homeAnimRunning) startHomeAnim();
 });
@@ -1697,7 +1683,7 @@ document.getElementById('dl-video-only').addEventListener('click', () => startRe
 document.getElementById('dl-video-audio').addEventListener('click', () => startRecording(true));
 document.getElementById('dl-cancel').addEventListener('click', () => document.getElementById('dl-modal').classList.remove('show'));
 
-// ── PROGRESS BAR — draggable scrubber (click, drag, touch) ──
+// ── PROGRESS BAR — draggable scrubber ──
 (function() {
   const wrap = document.getElementById('progress-wrap');
   const fill = document.getElementById('progress-fill');
@@ -1774,10 +1760,38 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && document.fullscreenElement) document.exitFullscreen();
 });
 
+// ── SAMPLE TRACKS ─────────────────────────────────────
+document.querySelectorAll('.sample-btn').forEach(btn => {
+  btn.addEventListener('click', async e => {
+    e.stopPropagation(); // don't trigger the drop-zone file picker
+    const src  = btn.dataset.src;
+    const name = btn.dataset.name;
+
+    const nameEl = btn.querySelector('.sample-name');
+    const origName = nameEl.textContent;
+    nameEl.textContent = 'Loading…';
+    btn.style.pointerEvents = 'none';
+
+    try {
+      const res = await fetch(src);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
+      homeAnimActive = false;
+      loadAndPlay(file);
+    } catch (err) {
+      console.error('Sample load failed:', err);
+      nameEl.textContent = 'Failed';
+      setTimeout(() => {
+        nameEl.textContent = origName;
+        btn.style.pointerEvents = '';
+      }, 2000);
+    }
+  });
+});
+
 // ═══════════════════════════════════════════════════════
-//  HOME SCREEN — restartable mouse-reactive flow animation
-//  Fix: track active state so the loop can be stopped &
-//  restarted cleanly when navigating back from a song.
+//  HOME SCREEN ANIMATION
 // ═══════════════════════════════════════════════════════
 let homeAnimActive  = true;
 let homeAnimRunning = false;
@@ -1854,7 +1868,6 @@ function startHomeAnim() {
   drawHome();
 }
 
-// MutationObserver restarts home anim when drop screen becomes visible
 const dropObserver = new MutationObserver(() => {
   const dropScreen = document.getElementById('drop-screen');
   if (!dropScreen.classList.contains('off') && !homeAnimRunning) {
@@ -1864,7 +1877,6 @@ const dropObserver = new MutationObserver(() => {
 });
 dropObserver.observe(document.getElementById('drop-screen'), { attributes: true, attributeFilter: ['class'] });
 
-// Initial start
 startHomeAnim();
 
 // ═══════════════════════════════════════════════════════
