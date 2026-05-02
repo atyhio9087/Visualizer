@@ -1,37 +1,66 @@
-# 🎧 Psychedelic Audio Visualizer (Groq + LLaMA 3.1)
+# 🎧 Psychedelic Audio Visualizer  
+### Groq ✦ Ollama ✦ LLaMA 3.1 ✦ Pure Canvas Chaos
 
 > Turn sound into colour, chaos, and controlled hallucinations 🌈
+
+[![Live Demo](https://img.shields.io/badge/demo-live-green?style=for-the-badge)](https://visualizer-ten-drab.vercel.app/)
+![Groq](https://img.shields.io/badge/Groq-LLM-blue?style=for-the-badge)
+![Ollama](https://img.shields.io/badge/Ollama-Local%20LLM-black?style=for-the-badge)
+![JavaScript](https://img.shields.io/badge/JS-Vanilla-yellow?style=for-the-badge)
+![HTML](https://img.shields.io/badge/HTML-Canvas-orange?style=for-the-badge)
 
 ---
 
 ## 🧠 What is this?
 
-A **browser-based audio visualizer** that doesn’t just react to sound — it **understands the vibe**.
+A **browser-based audio visualizer** that doesn’t just react to sound — it **interprets it**.
 
-Upload a track, and the system:
+Drop a track, and the system:
 
-* extracts audio features 🎵
-* classifies the **emotional vibe** using **Groq + LLaMA 3.1 (8B Instant)** 🤖
-* generates a matching **psychedelic visual experience** 🌌
+* extracts audio features 🎵  
+* classifies the **emotional vibe** using an LLM 🤖  
+* generates a matching **psychedelic visual system** 🌌  
 
 ---
 
-## ⚡ Demo Behaviour
+## 🔥 Live Demo
 
-| Input                    | Output               |
-| ------------------------ | -------------------- |
-| High bass + bright highs | 🔥 Energetic visuals |
-| Low energy + soft tones  | 🌊 Serene ambience   |
-| Weird mix                | 🌀 Psychedelic chaos |
+👉 https://visualizer-ten-drab.vercel.app/
+
+No install. Drop a file. Trip instantly.
+
+---
+
+## ⚡ Modes
+
+### 1. ☁️ Groq (Cloud LLM)
+- Uses `llama-3.1-8b-instant`
+- Fast inference
+- Requires API key
+
+### 2. 🖥️ Ollama (Local LLM) (Use the Ollama tagged file)
+- Fully offline
+- Runs `llama3.1`, `mistral`, `gemma`, etc.
+- No API cost
+- Configurable in UI (top-left badge)
+
+> The UI you see (Ollama badge + modal) is built directly into the app :contentReference[oaicite:0]{index=0}
 
 ---
 
 ## 🧪 Tech Stack
 
-* 🧠 LLM: `llama-3.1-8b-instant` via Groq
-* 🎨 Frontend: Vanilla HTML + Canvas + Web Audio API
-* ⚙️ Backend: Serverless (`/api/vibe.js`)
-* ☁️ Hosting: Vercel
+* 🧠 LLM:
+  * Groq (`llama-3.1-8b-instant`)
+  * Ollama (local models)
+* 🎨 Frontend:
+  * Vanilla JS
+  * Canvas API
+  * Web Audio API
+* ⚙️ Backend:
+  * Serverless (`/api/vibe.js`) for Groq
+* ☁️ Hosting:
+  * Vercel
 
 ---
 
@@ -40,136 +69,10 @@ Upload a track, and the system:
 ```text
 Audio File → Feature Extraction → Prompt
             ↓
-        /api/vibe
+     (Groq OR Ollama)
             ↓
-     Groq (LLM)
-            ↓
-       "energetic"
+        "vibe label"
             ↓
    Visual + Colour Engine
             ↓
      ✨ Psychedelic Output ✨
-```
-
----
-
-## 🧩 Core Idea
-
-Instead of hardcoding visuals:
-
-```js
-if (bass > 0.7) vibe = "energetic";
-```
-
-We do:
-
-```text
-"Given this audio profile, what is the vibe?"
-```
-
-👉 Let the model decide
-👉 Then map that to visuals
-
----
-
-## 🎯 Supported Vibes
-
-* `euphoric`
-* `melancholic`
-* `energetic`
-* `dreamy`
-* `tense`
-* `serene`
-* `dark`
-* `psychedelic`
-
----
-
-## 🚀 Run Locally
-
-```bash
-git clone <your-repo>
-cd your-repo
-```
-
-### 1. Install deps
-
-```bash
-npm install
-```
-
-### 2. Add env file
-
-```bash
-GROQ_API_KEY=your_key_here
-```
-
-### 3. Run server
-
-```bash
-node server.js
-```
-
-### 4. Open
-
-```
-http://localhost:3000
-```
-
----
-
-## ☁️ Deploy to Vercel
-
-1. Go to Vercel
-2. Import project (or upload folder)
-3. Add env var:
-
-   ```
-   GROQ_API_KEY=your_key_here
-   ```
-4. Deploy 🚀
-
----
-
-## ⚠️ Notes
-
-* 🔐 API key is **server-side only**
-* 🎯 LLM output is constrained to valid vibe labels
-* ⚡ Uses heuristic fallback if LLM fails
-
----
-
-## 🧠 Future Ideas
-
-* 🎼 Beat sync animations
-* 🎨 Dynamic palette evolution over time
-* 🧬 Blend multiple vibes instead of single label
-* 🕶️ VR / immersive mode
-
----
-
-## 💥 Why this exists
-
-Because:
-
-> Visualizers that just bounce to bass are boring.
-
-This one **interprets emotion**.
-
----
-
-## 👾 Credits
-
-* LLM inference powered by Groq
-* Deployment via Vercel
-
----
-
-## 🌈 Final Thought
-
-> You’re not just seeing the music.
-> You’re seeing how it *feels*.
-
----
-
-✨ Enjoy the trip.
