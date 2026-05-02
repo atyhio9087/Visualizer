@@ -500,8 +500,8 @@ let favTime = 0;
   
 function updateFaviconWave() {
   const size = 32;
-  const cols = 6;
-  const rows = 4;
+  const cols = 8;
+  const rows = 6;
 
   const cellW = size / cols;
   const cellH = size / rows;
@@ -509,24 +509,24 @@ function updateFaviconWave() {
   favCtx.fillStyle = "#000";
   favCtx.fillRect(0, 0, size, size);
 
-  favTime += 0.04; // speed of wave
+  favTime += 0.06;
 
-  for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < cols; x++) {
+  for (let x = 0; x < cols; x++) {
 
-      // 🌊 wave offset (this is the key)
-      // const wave = Math.sin(favTime + y * 0.8 + x * 0.3);
-      const wave = Math.sin(favTime + y * 0.8 + x * 0.6);
+    // 🌊 vertical wave (THIS is the key change)
+    const wave = Math.sin(favTime + x * 0.6);
 
-      // horizontal shift
-      const offsetX = wave * 4;
+    // map [-1,1] → [1, rows]
+    const visibleRows = Math.floor(((wave + 1) / 2) * rows);
 
-      const px = x * cellW + cellW / 2 + offsetX;
-      const py = y * cellH + cellH / 2;
+    for (let y = 0; y < visibleRows; y++) {
+
+      const px = x * cellW + cellW / 2;
+      const py = size - (y * cellH + cellH / 2); // grow upward
 
       favCtx.beginPath();
       favCtx.arc(px, py, 1.2, 0, Math.PI * 2);
-      favCtx.fillStyle = "rgba(255,255,255,0.8)";
+      favCtx.fillStyle = "rgba(255,255,255,0.85)";
       favCtx.fill();
     }
   }
