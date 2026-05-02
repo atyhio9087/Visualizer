@@ -509,13 +509,14 @@ function updateFaviconWave() {
   favCtx.fillStyle = "#000";
   favCtx.fillRect(0, 0, size, size);
 
-  favTime += 0.08; // speed of wave
+  favTime += 0.04; // speed of wave
 
   for (let y = 0; y < rows; y++) {
     for (let x = 0; x < cols; x++) {
 
       // 🌊 wave offset (this is the key)
-      const wave = Math.sin(favTime + y * 0.8 + x * 0.3);
+      // const wave = Math.sin(favTime + y * 0.8 + x * 0.3);
+      const wave = Math.sin(favTime + y * 0.8 + x * 0.6);
 
       // horizontal shift
       const offsetX = wave * 4;
