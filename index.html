@@ -486,6 +486,32 @@ const VIBE_PALETTES = {
   },
 };
 
+const faviconCanvas = document.createElement('canvas');
+faviconCanvas.width = 32;
+faviconCanvas.height = 32;
+const favCtx = faviconCanvas.getContext('2d');
+
+const link = document.createElement('link');
+link.rel = 'icon';
+document.head.appendChild(link);
+
+function updateFavicon() {
+  // clear
+  favCtx.fillStyle = '#000';
+  favCtx.fillRect(0, 0, 32, 32);
+
+  // simple reactive animation (example: pulsing circle)
+  const radius = 6 + S.bass * 10; // reacts to bass
+  const hue = (hueShift % 360);
+
+  favCtx.beginPath();
+  favCtx.arc(16, 16, radius, 0, Math.PI * 2);
+  favCtx.fillStyle = `hsl(${hue}, 100%, 60%)`;
+  favCtx.fill();
+
+  link.href = faviconCanvas.toDataURL('image/png');
+}
+
 // ═══════════════════════════════════════════════════════
 //  RESIZE — adaptive grid density based on screen aspect
 // ═══════════════════════════════════════════════════════
