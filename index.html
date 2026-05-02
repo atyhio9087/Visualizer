@@ -496,41 +496,41 @@ faviconLink.rel = 'icon';
 document.head.appendChild(faviconLink);
 
 // particles
-const FAV_PARTICLES = Array.from({ length: 16 }, () => ({
-  x: Math.random() * 32,
-  y: Math.random() * 32,
-  speed: 0.2 + Math.random() * 0.4,
-  size: 0.8 + Math.random() * 1.2,
-  drift: Math.random() * Math.PI * 2
-}));
+let favTime = 0;
+  
+function updateFaviconWave() {
+  const size = 32;
+  const cols = 6;
+  const rows = 4;
 
-function updateFaviconAmbient() {
-  // background
+  const cellW = size / cols;
+  const cellH = size / rows;
+
   favCtx.fillStyle = "#000";
-  favCtx.fillRect(0, 0, 32, 32);
+  favCtx.fillRect(0, 0, size, size);
 
-  FAV_PARTICLES.forEach(p => {
-    // smooth drifting motion
-    p.x += Math.cos(p.drift) * p.speed;
-    p.y += Math.sin(p.drift) * p.speed;
+  favTime += 0.08; // speed of wave
 
-    // slight curve over time (gives that "flow" feel)
-    p.drift += 0.01;
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
 
-    // wrap around edges
-    if (p.x < 0) p.x = 32;
-    if (p.x > 32) p.x = 0;
-    if (p.y < 0) p.y = 32;
-    if (p.y > 32) p.y = 0;
+      // 🌊 wave offset (this is the key)
+      const wave = Math.sin(favTime + y * 0.8 + x * 0.3);
 
-    // draw dot
-    favCtx.beginPath();
-    favCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    favCtx.fillStyle = "rgba(255,255,255,0.7)";
-    favCtx.fill();
-  });
+      // horizontal shift
+      const offsetX = wave * 4;
 
-  faviconLink.href = faviconCanvas.toDataURL('image/png');
+      const px = x * cellW + cellW / 2 + offsetX;
+      const py = y * cellH + cellH / 2;
+
+      favCtx.beginPath();
+      favCtx.arc(px, py, 1.2, 0, Math.PI * 2);
+      favCtx.fillStyle = "rgba(255,255,255,0.8)";
+      favCtx.fill();
+    }
+  }
+
+  faviconLink.href = faviconCanvas.toDataURL("image/png");
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1178,6 +1178,7 @@ function drawWarp() {
 // ═══════════════════════════════════════════════════════
 function render() {
   animFrame = requestAnimationFrame(render);
+   updateFaviconWave();
   if (!analyser) return;
   const raw = getBands();
   smoothBands(raw);
@@ -1190,7 +1191,6 @@ function render() {
   else if (currentMode === 'layers') drawLayers();
   else if (currentMode === 'warp') drawWarp();
   updateProgress();
-  updateFaviconAmbient();
 }
 
 // ═══════════════════════════════════════════════════════
