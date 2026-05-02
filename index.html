@@ -1,0 +1,1828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Psychedelic Visualizer</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;1,300&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: #000;
+  overflow: hidden;
+  font-family: 'IBM Plex Mono', monospace;
+  color: #fff;
+}
+
+/* ── SCREENS ─────────────────────────────────────────── */
+.screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; background: #000; transition: opacity 0.5s; }
+.screen.off { opacity: 0; pointer-events: none; }
+
+/* DROP SCREEN */
+#drop-screen { gap: 0; }
+#drop-screen .logo {
+  font-size: 11px; letter-spacing: 0.3em; color: rgba(255,255,255,0.22);
+  text-transform: uppercase; margin-bottom: 60px;
+}
+#drop-zone {
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 2px;
+  width: min(480px, 90vw);
+  padding: 64px 48px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  position: relative;
+}
+#drop-zone:hover, #drop-zone.drag { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.02); }
+#drop-zone::before {
+  content: '';
+  position: absolute; inset: -1px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.06), transparent 50%, rgba(255,255,255,0.03));
+  pointer-events: none;
+}
+.drop-glyph {
+  font-size: 32px; margin-bottom: 24px; display: block;
+  opacity: 0.3; letter-spacing: -0.05em;
+}
+.drop-headline { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 10px; font-weight: 300; }
+.drop-sub { font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 0.06em; line-height: 2; }
+#home-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none;
+}
+#file-input { display: none; }
+
+/* ANALYSIS SCREEN */
+#analysis-screen { gap: 20px; }
+#analysis-label { font-size: 11px; letter-spacing: 0.25em; color: rgba(255,255,255,0.3); text-transform: uppercase; }
+#analysis-status { font-size: 13px; color: rgba(255,255,255,0.6); letter-spacing: 0.06em; max-width: 360px; text-align: center; line-height: 1.8; }
+.progress-line {
+  width: 200px; height: 1px;
+  background: rgba(255,255,255,0.1);
+  position: relative; overflow: hidden;
+}
+.progress-line::after {
+  content: ''; position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: rgba(255,255,255,0.5);
+  animation: scan 1.4s ease-in-out infinite;
+}
+@keyframes scan { to { left: 100%; } }
+
+/* ── CANVAS ──────────────────────────────────────────── */
+#canvas {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: block;
+}
+#glow-canvas {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: block;
+  pointer-events: none;
+  opacity: 0.2;
+  mix-blend-mode: screen;
+}
+
+/* ── UI OVERLAY ──────────────────────────────────────── */
+#ui {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  padding: 20px 32px 24px;
+  background: linear-gradient(transparent, rgba(0,0,0,0.92));
+  z-index: 10;
+  transition: opacity 0.6s;
+}
+#ui.hidden { opacity: 0; pointer-events: none; }
+
+#transport {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 10px;
+}
+.t-btn {
+  background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.28);
+  color: rgba(255,255,255,0.85); cursor: pointer;
+  font-family: inherit; font-size: 11px; letter-spacing: 0.05em;
+  padding: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 2px; transition: border-color 0.2s, color 0.2s, background 0.2s;
+  flex-shrink: 0;
+}
+.t-btn:hover { border-color: rgba(255,255,255,0.65); color: #fff; background: rgba(255,255,255,0.1); }
+.t-btn:active { background: rgba(255,255,255,0.15); }
+#play-btn { width: 42px; height: 42px; font-size: 14px; }
+.icon-btn { width: 32px; height: 32px; font-size: 13px; }
+#back-btn { width: 32px; height: 32px; }
+
+/* YouTube-style progress bar */
+#progress-wrap {
+  flex: 1; height: 18px;
+  display: flex; align-items: center;
+  cursor: pointer; position: relative; user-select: none;
+}
+#progress-track {
+  position: absolute; left: 0; right: 0; height: 3px;
+  background: rgba(255,255,255,0.15); border-radius: 2px;
+  overflow: visible; pointer-events: none;
+  transition: height 0.12s ease;
+}
+#progress-wrap:hover #progress-track,
+#progress-wrap.scrubbing #progress-track { height: 5px; }
+#progress-fill {
+  height: 100%; border-radius: 2px; width: 0%;
+  position: relative; pointer-events: none; transition: background 1s;
+}
+#progress-handle {
+  position: absolute; top: 50%; right: -6px;
+  transform: translateY(-50%) scale(0);
+  width: 13px; height: 13px; border-radius: 50%;
+  background: #fff; pointer-events: none; transition: transform 0.12s ease;
+}
+#progress-wrap:hover #progress-handle,
+#progress-wrap.scrubbing #progress-handle { transform: translateY(-50%) scale(1); }
+
+#time-lbl { font-size: 11px; color: rgba(255,255,255,0.35); min-width: 96px; text-align: right; letter-spacing: 0.04em; }
+
+/* Volume control */
+#vol-wrap {
+  display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+}
+#vol-icon {
+  font-size: 13px; color: rgba(255,255,255,0.5); cursor: pointer;
+  user-select: none; transition: color 0.2s; width: 16px; text-align: center;
+}
+#vol-icon:hover { color: #fff; }
+#vol-slider-wrap {
+  width: 70px; height: 18px;
+  display: flex; align-items: center;
+  cursor: pointer; position: relative; user-select: none;
+}
+#vol-track {
+  position: absolute; left: 0; right: 0; height: 3px;
+  background: rgba(255,255,255,0.15); border-radius: 2px;
+  pointer-events: none; transition: height 0.12s ease;
+}
+#vol-slider-wrap:hover #vol-track { height: 5px; }
+#vol-fill {
+  height: 100%; border-radius: 2px; background: rgba(255,255,255,0.75);
+  position: relative; pointer-events: none;
+}
+#vol-handle {
+  position: absolute; top: 50%; right: -5px;
+  transform: translateY(-50%) scale(0);
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #fff; pointer-events: none; transition: transform 0.12s ease;
+}
+#vol-slider-wrap:hover #vol-handle,
+#vol-slider-wrap.scrubbing #vol-handle { transform: translateY(-50%) scale(1); }
+
+#meta-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+}
+#song-lbl { font-size: 14px; color: rgba(255,255,255,0.75); letter-spacing: 0.08em; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 300; }
+#vibe-pill {
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 5px 13px; border-radius: 2px; border: 1px solid; white-space: nowrap;
+  font-weight: 400;
+}
+
+/* MODE BAR */
+#mode-bar {
+  position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 2px; z-index: 10; transition: opacity 0.6s;
+  background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 3px; padding: 3px;
+}
+#mode-bar.hidden { opacity: 0; pointer-events: none; }
+.m-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+  background: none; border: none; color: rgba(255,255,255,0.3);
+  cursor: pointer; padding: 6px 14px; border-radius: 2px;
+  transition: color 0.2s, background 0.2s;
+}
+.m-btn:hover { color: rgba(255,255,255,0.65); }
+.m-btn.active { color: #fff; background: rgba(255,255,255,0.1); }
+
+/* REC INDICATOR */
+#rec-dot {
+  position: fixed; top: 22px; right: 22px;
+  font-size: 9px; letter-spacing: 0.15em; color: #ff4444;
+  display: none; align-items: center; gap: 6px;
+  z-index: 10; text-transform: uppercase;
+}
+#rec-dot::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: #ff4444;
+  animation: blink 1s ease-in-out infinite;
+}
+#rec-dot.show { display: flex; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* TWEAKPANE */
+#tweak-toggle {
+  position: fixed; bottom: 120px; left: 22px; z-index: 12;
+  width: 32px; height: 32px; border-radius: 2px;
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.6); font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.2s, border-color 0.2s, opacity 0.6s;
+}
+#tweak-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+#tweak-toggle.hidden { opacity: 0; pointer-events: none; }
+#tweak-panel {
+  position: fixed; left: 62px; bottom: 100px;
+  width: 260px; background: rgba(8,8,8,0.92);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;
+  padding: 14px 16px 10px; z-index: 12;
+  max-height: calc(100vh - 200px); overflow-y: auto;
+  transition: opacity 0.6s;
+}
+#tweak-panel.hidden { opacity: 0; pointer-events: none; }
+.tp-title {
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.3); margin-bottom: 14px; font-weight: 400;
+}
+.tp-row {
+  display: grid; grid-template-columns: 80px 1fr 34px;
+  align-items: center; gap: 6px; margin-bottom: 9px;
+}
+.tp-lbl { font-size: 9px; letter-spacing: 0.06em; color: rgba(255,255,255,0.38); }
+.tp-val { font-size: 9px; color: rgba(255,255,255,0.5); text-align: right; }
+input[type=range].tp-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 2px; background: rgba(255,255,255,0.14);
+  border-radius: 1px; outline: none; cursor: pointer;
+}
+input[type=range].tp-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 9px; height: 9px;
+  border-radius: 50%; background: rgba(255,255,255,0.7); cursor: pointer;
+}
+.tp-reset {
+  width: 100%; margin-top: 10px; background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.35);
+  font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.12em;
+  text-transform: uppercase; padding: 8px; cursor: pointer; border-radius: 2px;
+}
+.tp-reset:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
+
+/* SPEED CONTROL */
+#speed-panel {
+  position: fixed; bottom: 120px; right: 22px;
+  z-index: 10; display: flex; flex-direction: column; gap: 6px;
+  align-items: flex-end; transition: opacity 0.6s;
+}
+#speed-panel.hidden { opacity: 0; pointer-events: none; }
+#speed-label {
+  font-size: 9px; letter-spacing: 0.18em; color: rgba(255,255,255,0.3);
+  text-transform: uppercase; text-align: right;
+}
+#speed-val {
+  font-size: 9px; letter-spacing: 0.08em; color: rgba(255,255,255,0.5);
+  text-align: right; min-width: 28px;
+}
+#speed-wrap { display: flex; align-items: center; gap: 8px; }
+input[type=range]#speed-slider {
+  -webkit-appearance: none; appearance: none;
+  width: 90px; height: 2px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 1px; outline: none; cursor: pointer;
+}
+input[type=range]#speed-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 10px; height: 10px;
+  border-radius: 50%; background: rgba(255,255,255,0.75);
+  border: none; cursor: pointer;
+}
+
+
+#dl-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  display: none; align-items: center; justify-content: center; z-index: 30;
+}
+#dl-modal.show { display: flex; }
+#dl-box {
+  background: #0d0d0d; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px; padding: 36px 40px; min-width: 320px; text-align: center;
+}
+#dl-box h3 { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 28px; font-weight: 300; }
+.dl-opt {
+  display: block; width: 100%; background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.75);
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 13px 20px; cursor: pointer; border-radius: 2px;
+  margin-bottom: 10px; transition: background 0.2s, border-color 0.2s;
+}
+.dl-opt:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); }
+#dl-cancel {
+  margin-top: 8px; background: none; border: none;
+  color: rgba(255,255,255,0.25); font-family: inherit; font-size: 10px;
+  letter-spacing: 0.1em; cursor: pointer; padding: 8px;
+}
+#dl-cancel:hover { color: rgba(255,255,255,0.5); }
+#dl-progress { margin-top: 16px; font-size: 11px; color: rgba(255,255,255,0.4); display: none; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<canvas id="glow-canvas"></canvas>
+
+<!-- DROP SCREEN -->
+<div class="screen" id="drop-screen">
+  <canvas id="home-canvas"></canvas>
+  <div class="logo">Psychedelic Visualizer</div>
+  <div id="drop-zone">
+    <span class="drop-glyph">◎ ◈ ◉</span>
+    <div class="drop-headline">Drop your audio file</div>
+    <div class="drop-sub">MP3 · WAV · FLAC · OGG · M4A<br>Sentiment analysis included</div>
+  </div>
+  <input type="file" id="file-input" accept="audio/*">
+</div>
+
+<!-- ANALYSIS SCREEN -->
+<div class="screen off" id="analysis-screen">
+  <div id="analysis-label">Reading the vibe</div>
+  <div class="progress-line"></div>
+  <div id="analysis-status">Analyzing audio fingerprint…</div>
+</div>
+
+<!-- MODE BAR -->
+<div id="mode-bar" class="hidden">
+  <button class="m-btn active" data-mode="flowfield">Flow</button>
+  <button class="m-btn" data-mode="layers">Layers</button>
+  <button class="m-btn" data-mode="warp">Warp</button>
+</div>
+
+<!-- REC INDICATOR -->
+<div id="rec-dot">Rec</div>
+
+<!-- UI -->
+<div id="ui" class="hidden">
+  <div id="meta-row">
+    <div id="song-lbl">—</div>
+    <div id="vibe-pill">—</div>
+  </div>
+  <div id="transport">
+    <button class="t-btn" id="back-btn" title="New file">←</button>
+    <button class="t-btn" id="play-btn">▶</button>
+    <div id="progress-wrap">
+      <div id="progress-track">
+        <div id="progress-fill">
+          <div id="progress-handle"></div>
+        </div>
+      </div>
+    </div>
+    <div id="time-lbl">0:00 / 0:00</div>
+    <div id="vol-wrap">
+      <div id="vol-icon">🔊</div>
+      <div id="vol-slider-wrap">
+        <div id="vol-track"><div id="vol-fill" style="width:80%"><div id="vol-handle"></div></div></div>
+      </div>
+    </div>
+    <button class="t-btn icon-btn" id="fs-btn" title="Fullscreen">⛶</button>
+    <button class="t-btn icon-btn" id="dl-btn" title="Download video">⬇</button>
+  </div>
+</div>
+
+<!-- SPEED PANEL -->
+<div id="speed-panel" class="hidden">
+  <div id="speed-label">Flow Speed</div>
+  <div id="speed-wrap">
+    <input type="range" id="speed-slider" min="1" max="10" step="0.5" value="4">
+    <div id="speed-val">4</div>
+  </div>
+</div>
+
+<!-- TWEAKPANE PANEL -->
+<div id="tweak-panel" class="hidden"></div>
+<button id="tweak-toggle" class="hidden" title="Parameters (P)">⚙</button>
+
+<!-- DOWNLOAD MODAL -->
+<div id="dl-modal">
+  <div id="dl-box">
+    <h3>Export visualization</h3>
+    <button class="dl-opt" id="dl-video-only">Video only (no audio)</button>
+    <button class="dl-opt" id="dl-video-audio">Video + audio</button>
+    <div id="dl-progress"></div>
+    <button id="dl-cancel">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const glowCanvas = document.getElementById('glow-canvas');
+const glowCtx = glowCanvas.getContext('2d');
+
+let audioCtx, analyser, source, audioBuffer, gainNode;
+let startTime = 0, pauseOffset = 0, isPlaying = false;
+let animFrame;
+let currentMode = 'flowfield';
+let currentFile = null;
+
+// Vibe palette — will be set after sentiment analysis
+let PALETTE = {
+  name: 'psychedelic',
+  hues: [280, 180, 60],
+  saturation: 90,
+  lightnessBase: 50,
+  trailAlpha: 0.04,
+  glowIntensity: 0.5,
+  speedMult: 1.0,
+};
+
+const VIBE_PALETTES = {
+  euphoric: {
+    name: 'euphoric', label: 'Euphoric',
+    hues: [45, 15, 320],
+    saturation: 95, lightnessBase: 55, trailAlpha: 0.035, glowIntensity: 0.65, speedMult: 1.2,
+    pillColor: 'rgba(255,180,50,0.7)', pillBg: 'rgba(255,150,0,0.12)',
+  },
+  melancholic: {
+    name: 'melancholic', label: 'Melancholic',
+    hues: [200, 230, 180],
+    saturation: 60, lightnessBase: 40, trailAlpha: 0.025, glowIntensity: 0.35, speedMult: 0.7,
+    pillColor: 'rgba(100,160,220,0.7)', pillBg: 'rgba(50,100,180,0.12)',
+  },
+  psychedelic: {
+    name: 'psychedelic', label: 'Psychedelic',
+    hues: [280, 160, 50],
+    saturation: 100, lightnessBase: 52, trailAlpha: 0.04, glowIntensity: 0.6, speedMult: 1.0,
+    pillColor: 'rgba(200,100,255,0.7)', pillBg: 'rgba(150,0,255,0.12)',
+  },
+  energetic: {
+    name: 'energetic', label: 'Energetic',
+    hues: [0, 30, 60],
+    saturation: 100, lightnessBase: 58, trailAlpha: 0.05, glowIntensity: 0.7, speedMult: 1.4,
+    pillColor: 'rgba(255,80,60,0.7)', pillBg: 'rgba(255,30,0,0.12)',
+  },
+  dreamy: {
+    name: 'dreamy', label: 'Dreamy',
+    hues: [270, 220, 310],
+    saturation: 70, lightnessBase: 60, trailAlpha: 0.02, glowIntensity: 0.45, speedMult: 0.8,
+    pillColor: 'rgba(180,140,255,0.7)', pillBg: 'rgba(120,80,200,0.12)',
+  },
+  tense: {
+    name: 'tense', label: 'Tense',
+    hues: [0, 20, 350],
+    saturation: 85, lightnessBase: 42, trailAlpha: 0.055, glowIntensity: 0.55, speedMult: 1.15,
+    pillColor: 'rgba(220,80,80,0.7)', pillBg: 'rgba(180,20,20,0.12)',
+  },
+  serene: {
+    name: 'serene', label: 'Serene',
+    hues: [160, 190, 130],
+    saturation: 55, lightnessBase: 50, trailAlpha: 0.02, glowIntensity: 0.3, speedMult: 0.65,
+    pillColor: 'rgba(80,200,160,0.7)', pillBg: 'rgba(0,160,100,0.12)',
+  },
+  dark: {
+    name: 'dark', label: 'Dark',
+    hues: [260, 300, 220],
+    saturation: 75, lightnessBase: 35, trailAlpha: 0.06, glowIntensity: 0.4, speedMult: 0.9,
+    pillColor: 'rgba(140,80,200,0.7)', pillBg: 'rgba(60,0,120,0.12)',
+  },
+};
+
+// ═══════════════════════════════════════════════════════
+//  RESIZE — adaptive grid density based on screen aspect
+// ═══════════════════════════════════════════════════════
+let W, H;
+// UI_HEIGHT is the reserved space at the bottom so visuals never overlap controls
+const UI_HEIGHT = 110;
+
+function getAdaptiveGrid() {
+  // Target a square-ish cell. On wide screens use more columns, fewer rows.
+  // Base: ~24px cell size, scale from that.
+  const vizH = H - UI_HEIGHT;
+  const aspectRatio = W / vizH;
+
+  // Reference: a 600x600 square viewport gives ~20x20. Scale proportionally.
+  const baseCell = Math.max(20, Math.min(W, vizH) / 26);
+  const cols = Math.round(W / baseCell);
+  const rows = Math.round(vizH / baseCell);
+  return { cols: Math.max(8, Math.min(50, cols)), rows: Math.max(8, Math.min(40, rows)) };
+}
+
+function getAdaptiveNoiseFreq() {
+  // Normalize noise frequency to screen size so patterns look the same at any resolution.
+  // On a wider/larger screen, we scale down frequency so cells aren't jittery.
+  const ref = 600; // reference dimension
+  const dim = Math.max(W, H);
+  return (P.noiseFreq * 0.001) * (ref / dim);
+}
+
+function resize() {
+  W = canvas.width = glowCanvas.width = window.innerWidth;
+  H = canvas.height = glowCanvas.height = window.innerHeight;
+  // Update home canvas too
+  const hc = document.getElementById('home-canvas');
+  if (hc) { hc.width = hc.offsetWidth; hc.height = hc.offsetHeight; }
+}
+resize();
+window.addEventListener('resize', () => { resize(); rebuildGrid(); });
+
+// ═══════════════════════════════════════════════════════
+//  AUDIO SETUP
+// ═══════════════════════════════════════════════════════
+const FFT = 4096;
+let freqData, timeData;
+
+function initAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = FFT;
+  analyser.smoothingTimeConstant = 0.8;
+  gainNode = audioCtx.createGain();
+  analyser.connect(gainNode); 
+  gainNode.connect(audioCtx.destination);
+  freqData = new Uint8Array(analyser.frequencyBinCount);
+  timeData = new Uint8Array(analyser.frequencyBinCount);
+}
+
+function getBands() {
+  analyser.getByteFrequencyData(freqData);
+  return {
+    sub:    bandAvg(0,       0.015) / 255,
+    bass:   bandAvg(0.015,   0.07)  / 255,
+    low:    bandAvg(0.07,    0.15)  / 255,
+    mid:    bandAvg(0.15,    0.35)  / 255,
+    hi:     bandAvg(0.35,    0.6)   / 255,
+    air:    bandAvg(0.6,     0.9)   / 255,
+    kick:   bandAvg(0.005,   0.025) / 255,
+    snare:  bandAvg(0.04,    0.09)  / 255,
+    bass_g: bandAvg(0.09,    0.18)  / 255,
+    vocal:  bandAvg(0.18,    0.32)  / 255,
+    string: bandAvg(0.32,    0.55)  / 255,
+    cymbal: bandAvg(0.55,    0.85)  / 255,
+  };
+}
+
+function bandAvg(lo, hi) {
+  const L = freqData.length;
+  const a = Math.floor(lo * L), b = Math.floor(hi * L);
+  let s = 0;
+  for (let i = a; i < b; i++) s += freqData[i];
+  return s / Math.max(1, b - a);
+}
+
+const S = {};
+const raw_bands = ['sub','bass','low','mid','hi','air','kick','snare','bass_g','vocal','string','cymbal'];
+raw_bands.forEach(k => S[k] = 0);
+const ALPHA = { sub:0.3, bass:0.22, low:0.16, mid:0.13, hi:0.1, air:0.08,
+                kick:0.35, snare:0.3, bass_g:0.18, vocal:0.14, string:0.1, cymbal:0.09 };
+
+function smoothBands(raw) {
+  for (const k in ALPHA) S[k] += (raw[k] - S[k]) * ALPHA[k];
+}
+
+// ═══════════════════════════════════════════════════════
+//  NOISE
+// ═══════════════════════════════════════════════════════
+const perm = new Uint8Array(512);
+(function(){
+  const p = [...Array(256)].map((_,i)=>i);
+  for(let i=255;i>0;i--){const j=Math.floor(Math.random()*(i+1));[p[i],p[j]]=[p[j],p[i]];}
+  for(let i=0;i<512;i++) perm[i]=p[i&255];
+})();
+function fade(t){return t*t*t*(t*(t*6-15)+10);}
+function lerp(a,b,t){return a+t*(b-a);}
+function grad2(h,x,y){const v=h&3;const u=v<2?x:y;const w=v<2?y:x;return((h&1)?-u:u)+((h&2)?-w:w);}
+function noise2(x,y){
+  const xi=Math.floor(x)&255,yi=Math.floor(y)&255;
+  const xf=x-Math.floor(x),yf=y-Math.floor(y);
+  const u=fade(xf),v=fade(yf);
+  const aa=perm[perm[xi]+yi],ab=perm[perm[xi]+yi+1];
+  const ba=perm[perm[xi+1]+yi],bb=perm[perm[xi+1]+yi+1];
+  return lerp(lerp(grad2(aa,xf,yf),grad2(ba,xf-1,yf),u),
+              lerp(grad2(ab,xf,yf-1),grad2(bb,xf-1,yf-1),u),v);
+}
+
+// ═══════════════════════════════════════════════════════
+//  COLOR
+// ═══════════════════════════════════════════════════════
+let hueShift = 0;
+let peakFlash = 0;
+
+function noiseToHue(n) {
+  const h = PALETTE.hues;
+  const t01 = (n + 1) * 0.5;
+  const span = h.length - 1;
+  const pos  = t01 * span;
+  const idx  = Math.floor(pos) % h.length;
+  const blend = pos - Math.floor(pos);
+  const base = h[idx % h.length];
+  const next = h[(idx + 1) % h.length];
+  let diff = next - base;
+  if (diff > 180) diff -= 360;
+  if (diff < -180) diff += 360;
+  return ((base + diff * blend + hueShift) % 360 + 360) % 360;
+}
+
+// ═══════════════════════════════════════════════════════
+//  DYNAMIC PALETTE (NEW)
+// ═══════════════════════════════════════════════════════
+function generatePaletteFromAudio() {
+  // Normalize useful features
+  const energy = (S.bass + S.low + S.mid) / 3;
+  const brightness = (S.hi + S.air);
+  const bass = S.bass;
+  const mids = S.mid;
+  const highs = S.hi;
+  const noisiness = S.snare + S.cymbal;
+
+  // Base hue from frequency balance
+  let baseHue =
+    bass * 20 +        // red/orange
+    mids * 140 +       // green
+    highs * 260;       // blue/purple
+
+  baseHue = baseHue % 360;
+
+  // Spread (how wide the palette is)
+  const spread = 30 + noisiness * 120;
+
+  // Build palette
+  return {
+    hues: [
+      baseHue,
+      (baseHue + spread) % 360,
+      (baseHue + spread * 2) % 360
+    ],
+    saturation: 60 + brightness * 40,
+    lightnessBase: 35 + energy * 30,
+    trailAlpha: 0.02 + energy * 0.04,
+    glowIntensity: 0.3 + highs * 0.6,
+    speedMult: 0.6 + (S.bass + S.mid) * 0.8
+  };
+}
+
+let dynamicPalette = { ...PALETTE };
+
+function smoothPalette(target) {
+  const lerp = (a,b,t) => a + (b-a)*t;
+
+  dynamicPalette.saturation = lerp(dynamicPalette.saturation, target.saturation, 0.08);
+  dynamicPalette.lightnessBase = lerp(dynamicPalette.lightnessBase, target.lightnessBase, 0.08);
+  dynamicPalette.trailAlpha = lerp(dynamicPalette.trailAlpha, target.trailAlpha, 0.05);
+  dynamicPalette.glowIntensity = lerp(dynamicPalette.glowIntensity, target.glowIntensity, 0.08);
+  dynamicPalette.speedMult = lerp(dynamicPalette.speedMult, target.speedMult, 0.05);
+
+  for (let i = 0; i < 3; i++) {
+    dynamicPalette.hues[i] = lerp(dynamicPalette.hues[i], target.hues[i], 0.08);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  TIME
+// ═══════════════════════════════════════════════════════
+let t = 0;
+
+// ═══════════════════════════════════════════════════════
+//  GLOW LAYER
+// ═══════════════════════════════════════════════════════
+function applyFade() {
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = `rgba(0,0,0,${PALETTE.trailAlpha})`;
+  ctx.fillRect(0, 0, W, H);
+  glowCtx.clearRect(0, 0, W, H);
+}
+
+// ═══════════════════════════════════════════════════════
+//  TWEAKPANE
+// ═══════════════════════════════════════════════════════
+const P = {
+  cols:       20,
+  rows:       20,
+  lenScale:   0.55,
+  maxRot:     1.0,
+  noiseFreq:  3.0,
+  amp:        1.0,
+  speed:      4.0,
+  thickMin:   0.5,
+  thickMax:   18.0,
+  trailFade:  4,
+  alpha:      1.0,
+  autoGrid:   true,  // responsive grid
+};
+
+let panelOpen = false;
+
+function buildPanel() {
+  const panel = document.getElementById('tweak-panel');
+  panel.innerHTML = '';
+
+  const title = document.createElement('div');
+  title.className = 'tp-title';
+  title.textContent = 'Flow Parameters';
+  panel.appendChild(title);
+
+  const defs = [
+    { key:'lenScale',  label:'Bar Length',  min:0.1,  max:2.0, step:0.05, fmt:v=>v.toFixed(2) },
+    { key:'maxRot',    label:'Max Rotation',min:0.1,  max:2.0, step:0.05, fmt:v=>(v*180|0)+'°' },
+    { key:'noiseFreq', label:'Noise Freq',  min:0.5,  max:10,  step:0.1,  fmt:v=>v.toFixed(1) },
+    { key:'amp',       label:'Amplitude',   min:0.1,  max:3.0, step:0.05, fmt:v=>v.toFixed(2) },
+    { key:'speed',     label:'Speed',       min:1,    max:10,  step:0.25, fmt:v=>v.toFixed(2) },
+    { key:'thickMin',  label:'Width Min',   min:0.1,  max:5,   step:0.1,  fmt:v=>v.toFixed(1) },
+    { key:'thickMax',  label:'Width Max',   min:2,    max:40,  step:0.5,  fmt:v=>v.toFixed(1) },
+    { key:'trailFade', label:'Trail Fade',  min:1,    max:20,  step:1,    fmt:v=>v },
+    { key:'alpha',     label:'Opacity',     min:0.1,  max:1.0, step:0.02, fmt:v=>v.toFixed(2) },
+  ];
+
+  // Auto grid toggle
+  const autoRow = document.createElement('div');
+  autoRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;';
+  const autoLbl = document.createElement('div');
+  autoLbl.className = 'tp-lbl';
+  autoLbl.textContent = 'Auto Grid';
+  const autoChk = document.createElement('input');
+  autoChk.type = 'checkbox';
+  autoChk.checked = P.autoGrid;
+  autoChk.style.cursor = 'pointer';
+  autoChk.addEventListener('change', () => { P.autoGrid = autoChk.checked; buildPanel(); rebuildGrid(); });
+  autoRow.appendChild(autoLbl);
+  autoRow.appendChild(autoChk);
+  panel.appendChild(autoRow);
+
+  // Manual grid controls only if auto is off
+  if (!P.autoGrid) {
+    const gridDefs = [
+      { key:'cols', label:'Columns', min:5, max:50, step:1, fmt:v=>v|0 },
+      { key:'rows', label:'Rows',    min:5, max:40, step:1, fmt:v=>v|0 },
+    ];
+    gridDefs.forEach(d => addSlider(panel, d));
+  }
+
+  defs.forEach(d => addSlider(panel, d));
+
+  const reset = document.createElement('button');
+  reset.className = 'tp-reset';
+  reset.textContent = 'Reset defaults';
+  reset.addEventListener('click', () => {
+    Object.assign(P, { lenScale:0.55,maxRot:1.0,noiseFreq:3.0,amp:1.0,speed:4.0,thickMin:0.5,thickMax:18.0,trailFade:4,alpha:0.55,autoGrid:true });
+    buildPanel();
+    rebuildGrid();
+  });
+  panel.appendChild(reset);
+}
+
+function addSlider(panel, d) {
+  const row = document.createElement('div');
+  row.className = 'tp-row';
+  const lbl = document.createElement('div');
+  lbl.className = 'tp-lbl';
+  lbl.textContent = d.label;
+  const valSpan = document.createElement('div');
+  valSpan.className = 'tp-val';
+  valSpan.textContent = d.fmt(P[d.key]);
+  const slider = document.createElement('input');
+  slider.type = 'range';
+  slider.className = 'tp-slider';
+  slider.min = d.min; slider.max = d.max; slider.step = d.step;
+  slider.value = P[d.key];
+  slider.addEventListener('input', () => {
+    P[d.key] = parseFloat(slider.value);
+    valSpan.textContent = d.fmt(P[d.key]);
+    if (d.key === 'cols' || d.key === 'rows') rebuildGrid();
+  });
+  row.appendChild(lbl);
+  row.appendChild(slider);
+  row.appendChild(valSpan);
+  panel.appendChild(row);
+}
+
+function rebuildGrid() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+}
+
+// ═══════════════════════════════════════════════════════
+//  SPEED CONTROL
+// ═══════════════════════════════════════════════════════
+let FLOW_SPEED = 4.0;
+const speedSlider = document.getElementById('speed-slider');
+const speedVal    = document.getElementById('speed-val');
+speedSlider.addEventListener('input', () => {
+  FLOW_SPEED = parseFloat(speedSlider.value);
+  P.speed = FLOW_SPEED;
+  speedVal.textContent = FLOW_SPEED;
+});
+
+// ═══════════════════════════════════════════════════════
+//  VIZ 1: FLOW FIELD — fully responsive
+// ═══════════════════════════════════════════════════════
+function drawFlowField() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+
+  peakFlash = Math.max(0, peakFlash - 0.05);
+  if (S.bass > 0.72) peakFlash = 1;
+
+  // Adaptive grid: auto-size to screen, or manual from P
+  const { cols: autoCols, rows: autoRows } = getAdaptiveGrid();
+  const cols = P.autoGrid ? autoCols : Math.round(P.cols);
+  const rows = P.autoGrid ? autoRows : Math.round(P.rows);
+
+  // Normalize noise frequency to screen size to avoid jitter on large screens
+  const baseNoiseFreq = getAdaptiveNoiseFreq();
+  const noiseFreq = baseNoiseFreq + S.mid * (baseNoiseFreq * 2);
+  const timeSpeed = ((P.speed / 10) * 0.008) + S.bass * 0.012 + S.sub * 0.02;
+  const ampScale  = P.amp * (0.8 + S.mid * 1.2 + S.hi * 0.6);
+
+  // Scale bar thickness relative to cell size so it looks consistent
+  const vizH = H - UI_HEIGHT;
+  const cellRef = Math.min(W / cols, vizH / rows);
+  const thickBase = (P.thickMin / 20 * cellRef) + S.bass * (P.thickMax / 20 * cellRef) + S.sub * (P.thickMax / 20 * cellRef) * 0.5;
+  const lenScale  = P.lenScale + S.low * 0.35;
+  const maxRotRad = P.maxRot * Math.PI;
+
+  t += timeSpeed;
+  hueShift = (hueShift + 0.12 + S.mid * 0.6 * PALETTE.speedMult) % 360;
+
+  // Draw grid only in usable area, leaving bottom for UI
+  const gridW = W * 0.9;
+  const gridH = vizH * 0.9;
+  const cellW = gridW / cols;
+  const cellH = gridH / rows;
+  const marginX = (W - gridW) * 0.5;
+  // const marginY = (vizH - gridH) * 0.5;
+  const marginY = (vizH - gridH) * 0.5 + UI_HEIGHT * 0.25;
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const cx = marginX + col * cellW + cellW * 0.5;
+      const cy = marginY + row * cellH + cellH * 0.5;
+
+      // Normalize to 0..1 range before feeding to noise so scale is screen-independent
+      const nx = (cx / W) * P.noiseFreq;
+      const ny = (cy / vizH) * P.noiseFreq;
+
+      const n1 = noise2(nx + t * 0.7, ny + t * 0.3);
+      const n2 = noise2(nx * 2 + t * 1.1, ny * 2 - t * 0.5);
+      const n  = n1 * 0.7 + n2 * 0.3;
+
+      const rawAngle = n * Math.PI * ampScale;
+      const angle = Math.sign(rawAngle) * Math.min(Math.abs(rawAngle), maxRotRad);
+
+      const hue = noiseToHue(n);
+      const saturation = PALETTE.saturation * 0.75 + S.hi * 25;
+      const lightness  = PALETTE.lightnessBase + S.mid * 25 + peakFlash * 20;
+      const alpha      = P.alpha + S.bass * 0.35;
+
+      const thickness = Math.max(0.5, thickBase * Math.abs(n) * 1.5);
+      const halfLen   = cellW * lenScale * 0.5;
+
+      const dx = Math.cos(angle) * halfLen;
+      const dy = Math.sin(angle) * halfLen;
+
+      ctx.beginPath();
+      ctx.moveTo(cx - dx, cy - dy);
+      ctx.lineTo(cx + dx, cy + dy);
+      ctx.strokeStyle = `hsla(${hue},${saturation}%,${lightness}%,${alpha})`;
+      ctx.lineWidth = thickness;
+      ctx.lineCap = 'butt';
+      ctx.stroke();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  VIZ 2: LAYERS
+// ═══════════════════════════════════════════════════════
+const LAYER_DEFS = [
+  { label: '20–60 Hz',    yFrac: 0.12, lo: 0.000, hi: 0.015 },
+  { label: '60–250 Hz',   yFrac: 0.24, lo: 0.015, hi: 0.060 },
+  { label: '250–800 Hz',  yFrac: 0.38, lo: 0.060, hi: 0.190 },
+  { label: '800–3k Hz',   yFrac: 0.54, lo: 0.190, hi: 0.380 },
+  { label: '3k–8k Hz',    yFrac: 0.68, lo: 0.380, hi: 0.620 },
+  { label: '8k–20k Hz',   yFrac: 0.82, lo: 0.620, hi: 0.950 },
+];
+
+const layerAmp    = new Float32Array(LAYER_DEFS.length);
+const layerPhases = new Float32Array(LAYER_DEFS.length);
+const layerBright = new Float32Array(LAYER_DEFS.length).fill(0.5);
+
+function getLayerAmp(lo, hi) {
+  if (!freqData) return 0;
+  const L = freqData.length;
+  const a = Math.floor(lo * L), b = Math.floor(hi * L);
+  let s = 0;
+  for (let i = a; i < b; i++) s += freqData[i];
+  // return (s / Math.max(1, b - a)) / 255;
+  return Math.pow((s / Math.max(1, b - a)) / 255, 0.8);
+}
+
+function drawLayers() {
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  glowCtx.clearRect(0, 0, W, H);
+
+  t += 0.005 * PALETTE.speedMult;
+  hueShift = (hueShift + 0.06 + S.mid * 0.2) % 360;
+  analyser.getByteFrequencyData(freqData);
+
+  const vizH = H - UI_HEIGHT;
+  const waveW = W * 0.72;
+  const waveX = W * 0.15;
+  const segments = 200;
+
+  for (let i = 0; i < LAYER_DEFS.length; i++) {
+    const raw = getLayerAmp(LAYER_DEFS[i].lo, LAYER_DEFS[i].hi);
+    layerAmp[i] += (raw - layerAmp[i]) * 0.18;
+  }
+
+  const order = [...Array(LAYER_DEFS.length).keys()].sort((a, b) => layerAmp[b] - layerAmp[a]);
+  const targetBright = new Float32Array(LAYER_DEFS.length);
+  // order.forEach((li, rank) => { targetBright[li] = 1.0 - rank * 0.14; });
+  order.forEach((li, rank) => {
+  const energy = layerAmp[li];
+
+  // base rank brightness
+  let b = 1.0 - rank * 0.14;
+
+  // add energy contribution (boosts low freq visibility)
+  b += energy * 0.5;
+
+  // enforce minimum visibility
+  b = Math.max(0.5, b);
+
+  targetBright[li] = Math.min(1.0, b);
+});
+  for (let i = 0; i < LAYER_DEFS.length; i++) {
+    layerBright[i] += (targetBright[i] - layerBright[i]) * 0.04;
+  }
+
+  LAYER_DEFS.forEach((def, li) => {
+    const energy = layerAmp[li];
+    layerPhases[li] += 0.018 + energy * 0.10 * PALETTE.speedMult;
+
+    // Use vizH so layers sit in the visual area, not under the UI
+    // const cy = vizH * def.yFrac;
+    const cy = vizH * def.yFrac + UI_HEIGHT * 0.55;
+    const laneH = vizH * 0.048;
+    const bm = layerBright[li];
+
+    const hFrac = li / (LAYER_DEFS.length - 1);
+    const hIdx  = Math.floor(hFrac * (PALETTE.hues.length - 1));
+    const hBlend = (hFrac * (PALETTE.hues.length - 1)) % 1;
+    const hBase  = PALETTE.hues[hIdx % PALETTE.hues.length];
+    const hNext  = PALETTE.hues[(hIdx + 1) % PALETTE.hues.length];
+    let hDiff = hNext - hBase; if (hDiff > 180) hDiff -= 360; if (hDiff < -180) hDiff += 360;
+    const hue  = ((hBase + hDiff * hBlend + hueShift * 0.3) % 360 + 360) % 360;
+    const sat  = PALETTE.saturation;
+    const lit   = 15 + energy * 65 * bm + bm * (PALETTE.lightnessBase - 20);
+    const alpha = Math.max(0.15, Math.min(0.92, 0.15 + energy * 0.75 * bm + bm * 0.12));
+    const lineW = Math.max(0.5, 0.6 + energy * 3.5 * bm);
+    const ph = layerPhases[li];
+
+    ctx.beginPath();
+    for (let i = 0; i <= segments; i++) {
+      const x  = waveX + (i / segments) * waveW;
+      const xn = i / segments;
+      const y  = cy
+        + Math.sin(xn * Math.PI * 5.0  + ph)         * energy * laneH * 1.4
+        + Math.sin(xn * Math.PI * 10.5 + ph * 1.6)   * energy * laneH * 0.35
+        + Math.sin(xn * Math.PI * 2.5  + t * 0.65)   * energy * laneH * 0.20
+        + Math.sin(xn * Math.PI * 20   + ph * 2.2)   * energy * laneH * 0.10;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = `hsla(${hue},${sat}%,${lit}%,${alpha})`;
+    ctx.lineWidth = lineW;
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'butt';
+    ctx.stroke();
+
+    const lblAlpha = 0.18 + bm * 0.55 + energy * 0.25;
+    ctx.fillStyle = `hsla(${hue},${sat}%,${Math.min(85, lit + 10)}%,${lblAlpha})`;
+    ctx.font = `300 9px 'IBM Plex Mono'`;
+    ctx.textAlign = 'right';
+    ctx.fillText(def.label, waveX - 10, cy + 3.5);
+
+    const barX  = waveX + waveW + 12;
+    const barH  = laneH * 1.8;
+    const fill  = energy * barH;
+    ctx.fillStyle = `hsla(${hue},${sat}%,20%,0.25)`;
+    ctx.fillRect(barX, cy - barH * 0.5, 2, barH);
+    ctx.fillStyle = `hsla(${hue},${sat}%,${lit}%,${0.45 + energy * 0.45})`;
+    ctx.fillRect(barX, cy + barH * 0.5 - fill, 2, fill);
+
+    ctx.textAlign = 'left';
+    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(waveX - 90, cy + laneH * 0.9);
+    ctx.lineTo(waveX + waveW + 22, cy + laneH * 0.9);
+    ctx.stroke();
+  });
+
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.font = `300 9px 'IBM Plex Mono'`;
+  ctx.letterSpacing = '0.2em';
+  ctx.textAlign = 'right';
+  ctx.fillText('SPECTRUM', W - 26, 22);
+  ctx.textAlign = 'left';
+}
+
+// ═══════════════════════════════════════════════════════
+//  VIZ 3: WARP
+// ═══════════════════════════════════════════════════════
+function drawWarp() {
+  applyFade();
+  t += (0.004 + S.bass * 0.016) * PALETTE.speedMult;
+  hueShift = (hueShift + 0.12 + S.mid * 0.55 * PALETTE.speedMult) % 360;
+
+  const vizH = H - UI_HEIGHT;
+  const cx = W / 2, cy = vizH / 2;
+  const bars = 180;
+  const angleStep = (Math.PI * 2) / bars;
+
+  analyser.getByteFrequencyData(freqData);
+  ctx.beginPath();
+  let first = true;
+  for (let i = 0; i < bars; i++) {
+    const idx = Math.floor((i / bars) * (freqData.length * 0.65));
+    const mag = freqData[idx] / 255;
+    const baseR = Math.min(W, vizH) * (0.15 + S.bass * 0.07);
+    const r = baseR + mag * Math.min(W, vizH) * (0.24 + S.hi * 0.09);
+    const angle = i * angleStep - Math.PI / 2 + t * 0.18;
+    const wx = cx + Math.cos(angle) * r, wy = cy + Math.sin(angle) * r;
+    first ? (ctx.moveTo(wx, wy), first = false) : ctx.lineTo(wx, wy);
+  }
+  ctx.closePath();
+  const hBase = (PALETTE.hues[0] + hueShift) % 360;
+  const hMid  = (PALETTE.hues[1] + hueShift) % 360;
+  const hHi   = (PALETTE.hues[2] + hueShift) % 360;
+  const grd = ctx.createLinearGradient(0, 0, W, vizH);
+  grd.addColorStop(0, `hsla(${hBase},${PALETTE.saturation}%,${PALETTE.lightnessBase + S.hi*15}%,0.75)`);
+  grd.addColorStop(0.5, `hsla(${hMid},${PALETTE.saturation}%,${PALETTE.lightnessBase + 5 + S.hi*15}%,0.75)`);
+  grd.addColorStop(1, `hsla(${hHi},${PALETTE.saturation}%,${PALETTE.lightnessBase + S.hi*15}%,0.75)`);
+  ctx.strokeStyle = grd;
+  ctx.lineWidth = 1.5 + S.bass * 4;
+  ctx.stroke();
+
+  const fillG = glowCtx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, vizH)*0.5);
+  fillG.addColorStop(0, `hsla(${hBase},80%,55%,${0.04 + S.bass * 0.07})`);
+  fillG.addColorStop(1, `hsla(${hBase},80%,40%,0)`);
+  glowCtx.fillStyle = fillG;
+  glowCtx.beginPath();
+  glowCtx.arc(cx, cy, Math.min(W, vizH)*0.5, 0, Math.PI*2);
+  glowCtx.fill();
+
+  glowCtx.beginPath();
+  first = true;
+  for (let i = 0; i < bars; i++) {
+    const idx = Math.floor((i / bars) * (freqData.length * 0.65));
+    const mag = freqData[idx] / 255;
+    const baseR = Math.min(W, vizH) * (0.15 + S.bass * 0.07);
+    const r = baseR + mag * Math.min(W, vizH) * (0.24 + S.hi * 0.09);
+    const angle = i * angleStep - Math.PI / 2 + t * 0.18;
+    const wx = cx + Math.cos(angle) * r, wy = cy + Math.sin(angle) * r;
+    first ? (glowCtx.moveTo(wx, wy), first = false) : glowCtx.lineTo(wx, wy);
+  }
+  glowCtx.closePath();
+  glowCtx.strokeStyle = `hsla(${hBase},100%,75%,0.2)`;
+  glowCtx.lineWidth = 10;
+  glowCtx.stroke();
+
+  analyser.getByteTimeDomainData(timeData);
+  const wW = W * 0.48, wHh = vizH * 0.09;
+  const wX = cx - wW / 2;
+  ctx.beginPath();
+  for (let i = 0; i < timeData.length; i++) {
+    const x = wX + (i / timeData.length) * wW;
+    const v = (timeData[i] / 128 - 1);
+    const y = cy + v * wHh * (1 + S.mid * 1.4);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.strokeStyle = `hsla(${hHi},100%,80%,0.55)`;
+  ctx.lineWidth = 1 + S.hi * 2.5;
+  ctx.stroke();
+
+  if (S.hi > 0.38) {
+    const count = Math.floor(S.hi * 14);
+    for (let i = 0; i < count; i++) {
+      const a = (t * 3.2 + i * (Math.PI * 2 / count)) % (Math.PI * 2);
+      const r = 18 + S.mid * 90 + i * 7;
+      const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
+      const h = (hMid + i * 18) % 360;
+      ctx.beginPath(); ctx.arc(px, py, 1.4 + S.hi * 3.2, 0, Math.PI*2);
+      ctx.fillStyle = `hsla(${h},100%,78%,${S.hi * 0.75})`;
+      ctx.fill();
+      glowCtx.beginPath(); glowCtx.arc(px, py, (1.4 + S.hi * 3.2) * 4, 0, Math.PI*2);
+      glowCtx.fillStyle = `hsla(${h},100%,78%,${S.hi * 0.12})`;
+      glowCtx.fill();
+    }
+  }
+
+  if (S.sub > 0.28) {
+    const r = S.sub * 55;
+    const sg = glowCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    sg.addColorStop(0, `hsla(${hBase},100%,90%,${S.sub * 0.9})`);
+    sg.addColorStop(1, `hsla(${hBase},100%,60%,0)`);
+    glowCtx.fillStyle = sg;
+    glowCtx.beginPath(); glowCtx.arc(cx, cy, r, 0, Math.PI*2); glowCtx.fill();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  MAIN LOOP
+// ═══════════════════════════════════════════════════════
+function render() {
+  animFrame = requestAnimationFrame(render);
+  if (!analyser) return;
+  const raw = getBands();
+  smoothBands(raw);
+  
+  const newPalette = generatePaletteFromAudio();
+  smoothPalette(newPalette);
+  PALETTE = dynamicPalette;
+
+  if (currentMode === 'flowfield') drawFlowField();
+  else if (currentMode === 'layers') drawLayers();
+  else if (currentMode === 'warp') drawWarp();
+  updateProgress();
+}
+
+// ═══════════════════════════════════════════════════════
+//  GROQ LLM (SERVER CALL)
+// ═══════════════════════════════════════════════════════
+async function callLLM(prompt) {
+  const res = await fetch('/api/vibe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt })
+  });
+
+  if (!res.ok) throw new Error('LLM failed');
+
+  const data = await res.json();
+  return data.result;
+}
+
+// ═══════════════════════════════════════════════════════
+//  SENTIMENT ANALYSIS
+// ═══════════════════════════════════════════════════════
+
+function detectVibe(S) {
+  // --- Derived features ---
+  const energy = (S.bass + S.low + S.mid) / 3;
+  const brightness = (S.hi + S.air) / 2;
+  const aggression = S.snare + S.cymbal;
+  const warmth = S.bass + S.low;
+  const clarity = S.vocal + S.string;
+
+  // --- Score system ---
+  const score = {
+    energetic: 0,
+    melancholic: 0,
+    dreamy: 0,
+    euphoric: 0,
+    tense: 0,
+    serene: 0,
+    dark: 0,
+    psychedelic: 0,
+  };
+
+  // --- Energetic ---
+  score.energetic += energy * 1.2;
+  score.energetic += brightness * 0.8;
+  score.energetic += aggression * 0.6;
+
+  // --- Euphoric ---
+  score.euphoric += energy * 1.0;
+  score.euphoric += brightness * 0.6;
+  score.euphoric += warmth * 0.5;
+
+  // --- Melancholic ---
+  score.melancholic += (1 - energy) * 1.2;
+  score.melancholic += (1 - brightness) * 0.8;
+  score.melancholic += clarity * 0.5;
+
+  // --- Dreamy ---
+  score.dreamy += S.air * 1.2;
+  score.dreamy += clarity * 0.7;
+  score.dreamy += (1 - aggression) * 0.5;
+
+  // --- Tense ---
+  score.tense += aggression * 1.2;
+  score.tense += brightness * 0.5;
+  score.tense += energy * 0.4;
+
+  // --- Dark ---
+  score.dark += (1 - brightness) * 1.0;
+  score.dark += aggression * 0.6;
+  score.dark += (1 - clarity) * 0.4;
+
+  // --- Serene ---
+  score.serene += (1 - energy) * 1.2;
+  score.serene += (1 - aggression) * 0.8;
+  score.serene += S.air * 0.4;
+
+  // --- Psychedelic (fallback blend state) ---
+  score.psychedelic += 0.3;
+  score.psychedelic += Math.abs(S.mid - S.hi) * 0.5;
+  score.psychedelic += brightness * 0.4;
+
+  // --- Pick best ---
+  let best = "dreamy";
+  let max = -Infinity;
+
+  for (const k in score) {
+    if (score[k] > max) {
+      max = score[k];
+      best = k;
+    }
+  }
+
+  return best;
+}
+
+async function analyzeVibe(filename, energyProfile) {
+  const rms = parseFloat(energyProfile.rms);
+  const zcr = parseFloat(energyProfile.zcr);
+
+  const prompt = `
+Song: "${filename}"
+RMS: ${rms}
+ZCR: ${zcr}
+Energy: bass=${S.bass.toFixed(2)}, mid=${S.mid.toFixed(2)}, hi=${S.hi.toFixed(2)}
+
+Return ONE word:
+euphoric, melancholic, energetic, dreamy, tense, serene, dark, psychedelic
+`;
+
+  let vibe;
+
+  try {
+    const llmVibe = await callLLM(prompt);
+
+    if (llmVibe) {
+      vibe = llmVibe.trim().toLowerCase();
+    } else {
+      throw new Error("Empty LLM response");
+    }
+
+  } catch (e) {
+    console.log('LLM failed, using heuristic:', e.message);
+    vibe = detectVibe(S);
+  }
+
+  if (!VIBE_PALETTES[vibe]) {
+    console.log('Invalid vibe from LLM, fallback → heuristic');
+    vibe = detectVibe(S);
+  }
+
+  return vibe;
+}
+
+async function estimateEnergyProfile(buffer) {
+  const sr = buffer.sampleRate;
+  const samples = buffer.getChannelData(0).slice(0, Math.min(sr * 30, buffer.length));
+  let rms = 0;
+  for (let i = 0; i < samples.length; i++) rms += samples[i] * samples[i];
+  rms = Math.sqrt(rms / samples.length);
+  let zc = 0;
+  for (let i = 1; i < samples.length; i++) {
+    if (samples[i] * samples[i-1] < 0) zc++;
+  }
+  const zcr = zc / samples.length;
+  return { rms: rms.toFixed(3), zcr: zcr.toFixed(4), duration: buffer.duration.toFixed(1) };
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOAD & PLAY
+// ═══════════════════════════════════════════════════════
+async function loadAndPlay(file) {
+  currentFile = file;
+  document.getElementById('drop-screen').classList.add('off');
+  const analysis = document.getElementById('analysis-screen');
+  analysis.classList.remove('off');
+  document.getElementById('analysis-status').textContent = 'Decoding audio…';
+
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (source) { try { source.stop(); } catch(e){} }
+
+  const ab = await file.arrayBuffer();
+  document.getElementById('analysis-status').textContent = 'Analyzing frequencies…';
+  audioBuffer = await audioCtx.decodeAudioData(ab);
+
+  const profile = await estimateEnergyProfile(audioBuffer);
+  document.getElementById('analysis-status').textContent = 'Reading the vibe…';
+
+  const vibe = await analyzeVibe(file.name, profile);
+  PALETTE = { ...VIBE_PALETTES[vibe] || VIBE_PALETTES.psychedelic };
+
+  analysis.classList.add('off');
+  document.getElementById('ui').classList.remove('hidden');
+  document.getElementById('mode-bar').classList.remove('hidden');
+
+  const pill = document.getElementById('vibe-pill');
+  pill.textContent = PALETTE.label || vibe;
+  pill.style.color = PALETTE.pillColor || 'rgba(200,100,255,0.7)';
+  pill.style.background = PALETTE.pillBg || 'rgba(150,0,255,0.12)';
+  pill.style.borderColor = PALETTE.pillColor || 'rgba(200,100,255,0.3)';
+
+  const nameClean = file.name.replace(/\.[^.]+$/, '');
+  document.getElementById('song-lbl').textContent = nameClean;
+  document.getElementById('progress-fill').style.background = PALETTE.pillColor?.replace('0.7', '1') || '#fff';
+
+  hueShift = 0; t = 0; peakFlash = 0;
+  initAudio();
+  playFrom(0);
+  if (!animFrame) render();
+  if (currentMode === 'flowfield') {
+    document.getElementById('speed-panel').classList.remove('hidden');
+    document.getElementById('tweak-toggle').classList.remove('hidden');
+  }
+  buildPanel();
+}
+
+// updateOllamaBadge('');
+
+// ── PLAY STATE ─────────────────────────────────────────
+// userPaused: true when the user explicitly paused (not end-of-track stop)
+let userPaused = false;
+
+function setPlayBtn(playing) {
+  document.getElementById('play-btn').textContent = playing ? '⏸' : '▶';
+}
+
+function playFrom(offset) {
+  // Stop any existing source cleanly
+  if (source) {
+    source.onended = null; // detach before stopping so it can't flip state
+    try { source.stop(); } catch(e) {}
+    source = null;
+  }
+  source = audioCtx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(analyser);
+  // analyser.connect(gainNode);
+  // Don't re-connect analyser→gainNode every time; it's already connected from initAudio
+  source.start(0, Math.max(0, offset));
+  startTime = audioCtx.currentTime - offset;
+  isPlaying = true;
+  userPaused = false;
+  setPlayBtn(true);
+  source.onended = () => {
+    // Only treat as natural end if we didn't stop it ourselves
+    if (isPlaying && !userPaused) {
+      isPlaying = false;
+      pauseOffset = 0;
+      setPlayBtn(false);
+    }
+  };
+}
+
+function togglePlay() {
+  if (!audioBuffer || !audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (isPlaying) {
+    // Pause: capture position BEFORE stopping
+    pauseOffset = audioCtx.currentTime - startTime;
+    userPaused = true;
+    isPlaying = false;
+    if (source) {
+      source.onended = null;
+      try { source.stop(); } catch(e) {}
+      source = null;
+    }
+    setPlayBtn(false);
+  } else {
+    playFrom(pauseOffset);
+  }
+}
+
+function updateProgress() {
+  if (!audioBuffer || !audioCtx) return;
+  const elapsed = isPlaying
+    ? Math.min(audioCtx.currentTime - startTime, audioBuffer.duration)
+    : Math.min(pauseOffset, audioBuffer.duration);
+  if (!isScrubbing) {
+    const pct = (elapsed / audioBuffer.duration) * 100;
+    document.getElementById('progress-fill').style.width = pct + '%';
+  }
+  const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+  document.getElementById('time-lbl').textContent = `${fmt(elapsed)} / ${fmt(audioBuffer.duration)}`;
+}
+
+// ── PROGRESS BAR — YouTube-style scrubber ─────────────
+let isScrubbing = false;
+let scrubWasPlaying = false;
+
+(function() {
+  const wrap  = document.getElementById('progress-wrap');
+  const fill  = document.getElementById('progress-fill');
+  const track = document.getElementById('progress-track');
+
+  function getPct(clientX) {
+    const rect = track.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  }
+
+  function startScrub(clientX) {
+    if (!audioBuffer) return;
+    isScrubbing = true;
+    scrubWasPlaying = isPlaying;
+    wrap.classList.add('scrubbing');
+    // Pause playback during scrub to avoid gap/click artifacts
+    if (isPlaying) {
+      userPaused = true;
+      isPlaying = false;
+      if (source) { source.onended = null; try { source.stop(); } catch(e){} source = null; }
+    }
+    applyScrub(clientX);
+  }
+
+  function applyScrub(clientX) {
+    if (!isScrubbing || !audioBuffer) return;
+    const pct = getPct(clientX);
+    fill.style.width = (pct * 100) + '%';
+    pauseOffset = pct * audioBuffer.duration;
+    const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+    document.getElementById('time-lbl').textContent = `${fmt(pauseOffset)} / ${fmt(audioBuffer.duration)}`;
+  }
+
+  function endScrub() {
+    if (!isScrubbing) return;
+    isScrubbing = false;
+    wrap.classList.remove('scrubbing');
+    // Resume playing from new position if it was playing before
+    if (scrubWasPlaying) {
+      playFrom(pauseOffset);
+    }
+  }
+
+  // Mouse
+  wrap.addEventListener('mousedown', e => { e.preventDefault(); startScrub(e.clientX); });
+  document.addEventListener('mousemove', e => { if (isScrubbing) applyScrub(e.clientX); });
+  document.addEventListener('mouseup', () => endScrub());
+
+  // Touch
+  wrap.addEventListener('touchstart', e => { startScrub(e.touches[0].clientX); }, { passive: true });
+  document.addEventListener('touchmove', e => { if (isScrubbing) applyScrub(e.touches[0].clientX); }, { passive: true });
+  document.addEventListener('touchend', () => endScrub());
+})();
+
+// ── VOLUME CONTROL ─────────────────────────────────────
+let currentVolume = 0.8;
+let prevVolume = 0.8; // for mute toggle
+let isVolScrubbing = false;
+
+(function() {
+  const wrap  = document.getElementById('vol-slider-wrap');
+  const fill  = document.getElementById('vol-fill');
+  const icon  = document.getElementById('vol-icon');
+
+  function setVolume(v) {
+    currentVolume = Math.max(0, Math.min(1, v));
+    fill.style.width = (currentVolume * 100) + '%';
+    if (gainNode) gainNode.gain.setTargetAtTime(currentVolume, audioCtx?.currentTime || 0, 0.01);
+    // Update icon
+    if (currentVolume === 0) icon.textContent = '🔇';
+    else if (currentVolume < 0.4) icon.textContent = '🔉';
+    else icon.textContent = '🔊';
+  }
+
+  function getPct(clientX) {
+    const rect = wrap.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  }
+
+  // Mute toggle on icon click
+  icon.addEventListener('click', () => {
+    if (currentVolume > 0) { prevVolume = currentVolume; setVolume(0); }
+    else setVolume(prevVolume || 0.8);
+  });
+
+  wrap.addEventListener('mousedown', e => {
+    e.preventDefault();
+    isVolScrubbing = true;
+    wrap.classList.add('scrubbing');
+    setVolume(getPct(e.clientX));
+  });
+  document.addEventListener('mousemove', e => {
+    if (!isVolScrubbing) return;
+    setVolume(getPct(e.clientX));
+  });
+  document.addEventListener('mouseup', () => {
+    if (isVolScrubbing) { isVolScrubbing = false; wrap.classList.remove('scrubbing'); }
+  });
+
+  wrap.addEventListener('touchstart', e => {
+    isVolScrubbing = true;
+    wrap.classList.add('scrubbing');
+    setVolume(getPct(e.touches[0].clientX));
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!isVolScrubbing) return;
+    setVolume(getPct(e.touches[0].clientX));
+  }, { passive: true });
+  document.addEventListener('touchend', () => { isVolScrubbing = false; wrap.classList.remove('scrubbing'); });
+
+  // Initial state
+  setVolume(0.8);
+})();
+let mediaRecorder = null, recordedChunks = [];
+
+async function startRecording(withAudio) {
+  recordedChunks = [];
+  const stream = canvas.captureStream(60);
+  if (withAudio && audioCtx) {
+    const dest = audioCtx.createMediaStreamDestination();
+    gainNode.connect(dest);
+    dest.stream.getAudioTracks().forEach(tk => stream.addTrack(tk));
+  }
+  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
+  mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_000_000 });
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordedChunks, { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fname = (document.getElementById('song-lbl').textContent || 'visualization') + '_vis.webm';
+    a.href = url; a.download = fname; a.click();
+    URL.revokeObjectURL(url);
+    document.getElementById('rec-dot').classList.remove('show');
+    document.getElementById('dl-progress').textContent = 'Download complete.';
+    setTimeout(() => { document.getElementById('dl-modal').classList.remove('show'); }, 1500);
+  };
+  mediaRecorder.start(100);
+  document.getElementById('rec-dot').classList.add('show');
+  document.getElementById('dl-modal').classList.remove('show');
+  document.getElementById('dl-progress').style.display = 'block';
+  document.getElementById('dl-progress').textContent = 'Recording… click ⏹ to stop & save';
+  document.getElementById('dl-btn').textContent = '⏹';
+  document.getElementById('dl-btn').title = 'Stop recording';
+  isRecording = true;
+}
+
+let isRecording = false;
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    isRecording = false;
+    document.getElementById('dl-btn').textContent = '⬇';
+    document.getElementById('dl-btn').title = 'Download video';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UI AUTO-HIDE — works in normal and fullscreen modes
+// ═══════════════════════════════════════════════════════
+let hideTimer;
+const UI_ELEMENTS = ['ui', 'mode-bar', 'speed-panel', 'tweak-toggle'];
+
+function showUI() {
+  UI_ELEMENTS.forEach(id => document.getElementById(id)?.classList.remove('hidden'));
+  clearTimeout(hideTimer);
+  if (audioBuffer) {
+    hideTimer = setTimeout(() => {
+      if (isPlaying) {
+        ['ui', 'mode-bar', 'speed-panel', 'tweak-toggle'].forEach(id =>
+          document.getElementById(id)?.classList.add('hidden'));
+        if (!panelOpen) document.getElementById('tweak-panel')?.classList.add('hidden');
+      }
+    }, 3200);
+  }
+}
+
+document.addEventListener('mousemove', showUI);
+document.addEventListener('touchstart', showUI, { passive: true });
+
+// ═══════════════════════════════════════════════════════
+//  EVENTS
+// ═══════════════════════════════════════════════════════
+document.getElementById('drop-zone').addEventListener('click', () => document.getElementById('file-input').click());
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) { homeAnimActive = false; loadAndPlay(e.target.files[0]); }
+});
+
+document.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag'); });
+document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.getElementById('drop-zone').classList.remove('drag'); });
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('audio/')) { homeAnimActive = false; loadAndPlay(f); }
+});
+
+document.getElementById('play-btn').addEventListener('click', togglePlay);
+
+document.getElementById('back-btn').addEventListener('click', () => {
+  if (source) { try { source.stop(); } catch(e){} }
+  isPlaying = false; audioBuffer = null; pauseOffset = 0;
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  glowCtx.clearRect(0, 0, W, H);
+  document.getElementById('ui').classList.add('hidden');
+  document.getElementById('mode-bar').classList.add('hidden');
+  document.getElementById('analysis-screen').classList.add('off');
+  // Restore drop screen and restart home animation
+  document.getElementById('drop-screen').classList.remove('off');
+  document.getElementById('file-input').value = '';
+  hueShift = 0; t = 0; peakFlash = 0;
+  // Restart home canvas animation
+  homeAnimActive = true;
+  if (!homeAnimRunning) startHomeAnim();
+});
+
+document.getElementById('fs-btn').addEventListener('click', () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+});
+document.addEventListener('fullscreenchange', () => {
+  document.getElementById('fs-btn').textContent = document.fullscreenElement ? '✕' : '⛶';
+});
+
+document.getElementById('dl-btn').addEventListener('click', () => {
+  if (isRecording) { stopRecording(); return; }
+  document.getElementById('dl-modal').classList.add('show');
+  document.getElementById('dl-progress').style.display = 'none';
+  document.getElementById('dl-progress').textContent = '';
+});
+document.getElementById('dl-video-only').addEventListener('click', () => startRecording(false));
+document.getElementById('dl-video-audio').addEventListener('click', () => startRecording(true));
+document.getElementById('dl-cancel').addEventListener('click', () => document.getElementById('dl-modal').classList.remove('show'));
+
+// ── PROGRESS BAR — draggable scrubber (click, drag, touch) ──
+(function() {
+  const wrap = document.getElementById('progress-wrap');
+  const fill = document.getElementById('progress-fill');
+  let scrubbing = false;
+
+  function seekTo(clientX) {
+    if (!audioBuffer) return;
+    const rect = wrap.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const newOffset = pct * audioBuffer.duration;
+    fill.style.width = (pct * 100) + '%';
+    const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+    document.getElementById('time-lbl').textContent = `${fmt(newOffset)} / ${fmt(audioBuffer.duration)}`;
+    pauseOffset = newOffset;
+    if (isPlaying) playFrom(newOffset);
+    else startTime = (audioCtx ? audioCtx.currentTime : 0) - newOffset;
+  }
+
+  wrap.addEventListener('mousedown', e => {
+    if (!audioBuffer) return;
+    scrubbing = true;
+    wrap.style.cursor = 'grabbing';
+    seekTo(e.clientX);
+  });
+  document.addEventListener('mousemove', e => {
+    if (!scrubbing) return;
+    seekTo(e.clientX);
+  });
+  document.addEventListener('mouseup', () => {
+    if (scrubbing) { scrubbing = false; wrap.style.cursor = ''; }
+  });
+  wrap.addEventListener('touchstart', e => {
+    if (!audioBuffer) return;
+    scrubbing = true;
+    seekTo(e.touches[0].clientX);
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    if (!scrubbing) return;
+    seekTo(e.touches[0].clientX);
+  }, { passive: true });
+  document.addEventListener('touchend', () => { scrubbing = false; });
+})();
+
+document.querySelectorAll('.m-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.m-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    glowCtx.clearRect(0, 0, W, H);
+    t = 0; hueShift = 0;
+    const isFlow = currentMode === 'flowfield';
+    document.getElementById('speed-panel').classList.toggle('hidden', !isFlow);
+    document.getElementById('tweak-toggle').classList.toggle('hidden', !isFlow);
+    if (!isFlow) { panelOpen = false; document.getElementById('tweak-panel').classList.add('hidden'); }
+  });
+});
+
+document.getElementById('tweak-toggle').addEventListener('click', () => {
+  panelOpen = !panelOpen;
+  document.getElementById('tweak-panel').classList.toggle('hidden', !panelOpen);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  if (e.code === 'KeyF') document.querySelector('[data-mode="flowfield"]').click();
+  if (e.code === 'KeyL') document.querySelector('[data-mode="layers"]').click();
+  if (e.code === 'KeyW') document.querySelector('[data-mode="warp"]').click();
+  if (e.code === 'KeyP') {
+    panelOpen = !panelOpen;
+    document.getElementById('tweak-panel').classList.toggle('hidden', !panelOpen);
+    document.getElementById('tweak-toggle').classList.remove('hidden');
+  }
+  if (e.key === 'Escape' && document.fullscreenElement) document.exitFullscreen();
+});
+
+// ═══════════════════════════════════════════════════════
+//  HOME SCREEN — restartable mouse-reactive flow animation
+//  Fix: track active state so the loop can be stopped &
+//  restarted cleanly when navigating back from a song.
+// ═══════════════════════════════════════════════════════
+let homeAnimActive  = true;
+let homeAnimRunning = false;
+
+function startHomeAnim() {
+  const hc = document.getElementById('home-canvas');
+  const hx = hc.getContext('2d');
+  let hW = hc.offsetWidth, hH = hc.offsetHeight;
+  hc.width = hW; hc.height = hH;
+
+  window.addEventListener('resize', () => {
+    hW = hc.width = hc.offsetWidth;
+    hH = hc.height = hc.offsetHeight;
+  });
+
+  let mx = 0.5, my = 0.5, smx = 0.5, smy = 0.5;
+  const onMouseMove = e => { mx = e.clientX / window.innerWidth; my = e.clientY / window.innerHeight; };
+  document.addEventListener('mousemove', onMouseMove);
+
+  const DOT_COLS = 28, DOT_ROWS = 20;
+  let hTick = 0;
+  homeAnimRunning = true;
+
+  function drawHome() {
+    if (!homeAnimActive) {
+      homeAnimRunning = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      hx.clearRect(0, 0, hW, hH);
+      return;
+    }
+    requestAnimationFrame(drawHome);
+    hTick += 0.008;
+    smx += (mx - smx) * 0.04;
+    smy += (my - smy) * 0.04;
+    hx.clearRect(0, 0, hW, hH);
+
+    const gW = hW * 0.92, gH = hH * 0.92;
+    const cW = gW / DOT_COLS, cH = gH / DOT_ROWS;
+    const mgx = (hW - gW) * 0.5, mgy = (hH - gH) * 0.5;
+
+    for (let row = 0; row < DOT_ROWS; row++) {
+      for (let col = 0; col < DOT_COLS; col++) {
+        const cx = mgx + col * cW + cW * 0.5;
+        const cy = mgy + row * cH + cH * 0.5;
+        const dx = cx / hW - smx;
+        const dy = cy / hH - smy;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const influence = Math.max(0, 1 - dist * 2.8);
+        const n = noise2(cx * 0.003 + hTick * 0.4, cy * 0.003 - hTick * 0.2);
+        const mouseAngle = Math.atan2(dy, dx) + Math.PI;
+        const ambientAngle = n * Math.PI * 1.4;
+        const angle = ambientAngle + (mouseAngle - ambientAngle) * influence * 0.65;
+        const r = 0.8 + influence * 2.2;
+        const baseAlpha = 0.06 + Math.abs(n) * 0.08;
+        const alpha = baseAlpha + influence * 0.22;
+        const hue = 200 + influence * 80;
+        const sat = 30 + influence * 60;
+        const lit = 60 + influence * 30;
+
+        hx.save();
+        hx.translate(cx, cy);
+        hx.rotate(angle);
+        hx.beginPath();
+        hx.moveTo(-cW * 0.28, 0);
+        hx.lineTo( cW * 0.28, 0);
+        hx.strokeStyle = `hsla(${hue},${sat}%,${lit}%,${alpha})`;
+        hx.lineWidth = r;
+        hx.lineCap = 'butt';
+        hx.stroke();
+        hx.restore();
+      }
+    }
+  }
+  drawHome();
+}
+
+// MutationObserver restarts home anim when drop screen becomes visible
+const dropObserver = new MutationObserver(() => {
+  const dropScreen = document.getElementById('drop-screen');
+  if (!dropScreen.classList.contains('off') && !homeAnimRunning) {
+    homeAnimActive = true;
+    startHomeAnim();
+  }
+});
+dropObserver.observe(document.getElementById('drop-screen'), { attributes: true, attributeFilter: ['class'] });
+
+// Initial start
+startHomeAnim();
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+ctx.fillStyle = '#000';
+ctx.fillRect(0, 0, W, H);
+</script>
+</body>
+</html>
