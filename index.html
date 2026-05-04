@@ -354,6 +354,94 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
 }
 #dl-cancel:hover { color: rgba(255,255,255,0.5); }
 #dl-progress { margin-top: 16px; font-size: 11px; color: rgba(255,255,255,0.4); display: none; }
+#secret-trigger {
+  position: fixed; bottom: 10px; left: 10px;
+  width: 14px; height: 14px; z-index: 50;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.4s;
+}
+#secret-trigger:hover { opacity: 1; }
+#secret-trigger .ghost-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  transition: background 0.3s, transform 0.3s;
+}
+#secret-trigger:hover .ghost-dot { background: rgba(255,255,255,0.45); transform: scale(1.5); }
+#secret-trigger.unlocked .ghost-dot {
+  background: rgba(100,255,180,0.5);
+  box-shadow: 0 0 6px rgba(100,255,180,0.4);
+}
+ 
+#secret-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  display: none; align-items: center; justify-content: center;
+  z-index: 60; backdrop-filter: blur(4px);
+}
+#secret-modal.show { display: flex; }
+#secret-box {
+  background: #090909; border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 3px; padding: 36px 40px 28px; width: min(380px, 90vw); position: relative;
+}
+#secret-box::before {
+  content: ''; position: absolute; inset: -1px; border-radius: 3px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), transparent 60%);
+  pointer-events: none;
+}
+.sb-eyebrow { font-size: 8px; letter-spacing: 0.35em; text-transform: uppercase; color: rgba(255,255,255,0.18); margin-bottom: 22px; }
+.sb-title { font-size: 13px; letter-spacing: 0.1em; color: rgba(255,255,255,0.55); font-weight: 300; margin-bottom: 28px; line-height: 1.7; }
+#secret-input-wrap { position: relative; margin-bottom: 8px; }
+#secret-input {
+  width: 100%; background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 2px;
+  color: rgba(255,255,255,0.8); font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; letter-spacing: 0.15em; padding: 12px 42px 12px 14px;
+  outline: none; transition: border-color 0.2s;
+}
+#secret-input:focus { border-color: rgba(255,255,255,0.28); }
+#secret-input.error { border-color: rgba(255,80,80,0.5); animation: shake 0.35s ease; }
+@keyframes shake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)}
+  40%{transform:translateX(7px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)}
+}
+#secret-eye {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 12px; cursor: pointer; opacity: 0.3; transition: opacity 0.2s; user-select: none;
+}
+#secret-eye:hover { opacity: 0.7; }
+#secret-error {
+  font-size: 10px; letter-spacing: 0.08em; color: rgba(255,80,80,0.65);
+  height: 18px; margin-bottom: 20px; opacity: 0; transition: opacity 0.3s;
+}
+#secret-error.show { opacity: 1; }
+#secret-submit {
+  width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.6); font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  padding: 12px; cursor: pointer; border-radius: 2px;
+  transition: background 0.2s, border-color 0.2s, color 0.2s; margin-bottom: 18px;
+}
+#secret-submit:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.28); color: rgba(255,255,255,0.9); }
+#secret-close {
+  display: block; width: 100%; text-align: center; background: none; border: none;
+  color: rgba(255,255,255,0.18); font-family: inherit; font-size: 9px;
+  letter-spacing: 0.14em; cursor: pointer; padding: 4px; text-transform: uppercase; transition: color 0.2s;
+}
+#secret-close:hover { color: rgba(255,255,255,0.45); }
+#secret-tracklist { display: none; }
+.secret-track {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 14px; border: 1px solid rgba(255,255,255,0.07); border-radius: 2px;
+  margin-bottom: 8px; cursor: pointer; transition: background 0.2s, border-color 0.2s;
+  background: rgba(255,255,255,0.02);
+}
+.secret-track:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.18); }
+.secret-track:last-child { margin-bottom: 0; }
+.st-meta { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.st-name { font-size: 11px; letter-spacing: 0.06em; color: rgba(255,255,255,0.65); font-weight: 300; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-artist { font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25); margin-top: 2px; }
+.st-icon { font-size: 11px; opacity: 0.35; margin-left: 12px; flex-shrink: 0; }
+.secret-track:hover .st-icon { opacity: 0.7; }
+#secret-box.unlocked-state { border-color: rgba(100,255,180,0.12); }
 </style>
 </head>
 <body>
@@ -461,6 +549,54 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
     <button id="dl-cancel">Cancel</button>
   </div>
 </div>
+
+<!-- SECRET TRIGGER — nearly invisible dot, bottom-left -->
+<div id="secret-trigger"><div class="ghost-dot"></div></div>
+ 
+<!-- SECRET MODAL -->
+<div id="secret-modal">
+  <div id="secret-box">
+    <div id="secret-form">
+      <div class="sb-eyebrow">Restricted access</div>
+      <div class="sb-title">Enter passphrase to unlock<br>additional tracks</div>
+      <div id="secret-input-wrap">
+        <input type="password" id="secret-input" placeholder="············" autocomplete="off" spellcheck="false">
+        <span id="secret-eye">◉</span>
+      </div>
+      <div id="secret-error">Incorrect passphrase</div>
+      <button id="secret-submit">Unlock</button>
+      <button id="secret-close">Dismiss</button>
+    </div>
+    <div id="secret-tracklist">
+      <div class="sb-eyebrow">Unlocked</div>
+      <div class="sb-title">Select a track to load</div>
+      <div class="secret-track" data-src="/samples/energetic.mp3">
+        <div class="st-meta">
+          <div class="st-name">About You</div>
+          <div class="st-artist">The 1975</div>
+        </div>
+        <span class="st-icon">▶</span>
+      </div>
+      <div class="secret-track" data-src="/samples/energetic.mp3">
+        <div class="st-meta">
+          <div class="st-name">Good Goodbye</div>
+          <div class="st-artist">Hwasa</div>
+        </div>
+        <span class="st-icon">▶</span>
+      </div>
+      <div class="secret-track" data-src="/samples/energetic.mp3">
+        <div class="st-meta">
+          <div class="st-name">Let It Happen</div>
+          <div class="st-artist">Tame Impala</div>
+        </div>
+        <span class="st-icon">▶</span>
+      </div>
+      <button id="secret-close-unlocked" style="display:block;width:100%;text-align:center;background:none;border:none;color:rgba(255,255,255,0.18);font-family:inherit;font-size:9px;letter-spacing:0.14em;cursor:pointer;padding:14px 4px 0;text-transform:uppercase;transition:color 0.2s;">Close</button>
+    </div>
+  </div>
+</div>
+ 
+<script>
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -1630,6 +1766,102 @@ function showUI() {
 
 document.addEventListener('mousemove', showUI);
 document.addEventListener('touchstart', showUI, { passive: true });
+
+
+// ═══════════════════════════════════════════════════════
+//  SECRET ACCESS SYSTEM
+//  SHA-256 checked client-side via SubtleCrypto — no plaintext stored
+// ═══════════════════════════════════════════════════════
+const SECRET_HASH = 'a84847232730519ce97c3578535f9ccbbeb92b38833a8465d3464190bd185bf9';
+let secretUnlocked = false;
+ 
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+ 
+function openSecretModal() {
+  document.getElementById('secret-modal').classList.add('show');
+  if (secretUnlocked) {
+    document.getElementById('secret-form').style.display = 'none';
+    document.getElementById('secret-tracklist').style.display = 'block';
+  } else {
+    document.getElementById('secret-form').style.display = 'block';
+    document.getElementById('secret-tracklist').style.display = 'none';
+    document.getElementById('secret-input').value = '';
+    document.getElementById('secret-input').classList.remove('error');
+    document.getElementById('secret-error').classList.remove('show');
+    setTimeout(() => document.getElementById('secret-input').focus(), 60);
+  }
+}
+ 
+function closeSecretModal() {
+  document.getElementById('secret-modal').classList.remove('show');
+}
+ 
+async function attemptUnlock() {
+  const val = document.getElementById('secret-input').value;
+  if (!val) return;
+  const hash = await sha256(val.trim());
+  if (hash === SECRET_HASH) {
+    secretUnlocked = true;
+    document.getElementById('secret-trigger').classList.add('unlocked');
+    document.getElementById('secret-box').classList.add('unlocked-state');
+    document.getElementById('secret-form').style.display = 'none';
+    document.getElementById('secret-tracklist').style.display = 'block';
+  } else {
+    const inp = document.getElementById('secret-input');
+    inp.classList.add('error');
+    document.getElementById('secret-error').classList.add('show');
+    setTimeout(() => inp.classList.remove('error'), 400);
+    inp.value = ''; inp.focus();
+  }
+}
+ 
+async function loadSecretTrack(filename) {
+  closeSecretModal();
+  document.getElementById('analysis-screen').classList.remove('off');
+  document.getElementById('drop-screen').classList.add('off');
+  document.getElementById('analysis-status').textContent = 'Loading track…';
+  try {
+    const resp = await fetch('https://raw.githubusercontent.com/atyhio9087/Visualizer/main/samples/' + encodeURIComponent(filename));
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const blob = await resp.blob();
+    const file = new File([blob], filename, { type: blob.type || 'audio/mpeg' });
+    homeAnimActive = false;
+    await loadAndPlay(file);
+  } catch(e) {
+    console.error('Secret track load failed:', e);
+    document.getElementById('analysis-screen').classList.add('off');
+    document.getElementById('drop-screen').classList.remove('off');
+    alert(`Could not load "${filename}". Make sure the file is in /samples/.`);
+  }
+}
+ 
+document.getElementById('secret-trigger').addEventListener('click', openSecretModal);
+document.getElementById('secret-eye').addEventListener('click', () => {
+  const inp = document.getElementById('secret-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  document.getElementById('secret-eye').textContent = inp.type === 'password' ? '◉' : '◎';
+});
+document.getElementById('secret-submit').addEventListener('click', attemptUnlock);
+document.getElementById('secret-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); attemptUnlock(); }
+  document.getElementById('secret-error').classList.remove('show');
+});
+document.getElementById('secret-close').addEventListener('click', closeSecretModal);
+document.getElementById('secret-close-unlocked').addEventListener('click', closeSecretModal);
+document.getElementById('secret-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('secret-modal')) closeSecretModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('secret-modal').classList.contains('show')) {
+    e.stopPropagation(); closeSecretModal();
+  }
+});
+document.querySelectorAll('.secret-track').forEach(row => {
+  row.addEventListener('click', () => { if (row.dataset.file) loadSecretTrack(row.dataset.file); });
+});
 
 // ═══════════════════════════════════════════════════════
 //  EVENTS
