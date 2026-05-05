@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Funky Monkey Visualizer</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;1,300&display=swap');
@@ -15,6 +15,9 @@ html, body {
   overflow: hidden;
   font-family: 'IBM Plex Mono', monospace;
   color: #fff;
+  /* Prevent iOS bounce/overscroll */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── SCREENS ─────────────────────────────────────────── */
@@ -24,19 +27,21 @@ html, body {
 /* DROP SCREEN */
 #drop-screen { gap: 0; }
 #drop-screen .logo {
-  font-size: 25px; letter-spacing: 0.18em; color: rgba(255,255,255,0.9);
+  font-size: clamp(14px, 3.5vw, 25px);
+  letter-spacing: 0.18em; color: rgba(255,255,255,0.9);
   text-shadow: 0 0 12px rgba(255,255,255,0.2);
-  text-transform: uppercase; margin-bottom: 60px;
+  text-transform: uppercase; margin-bottom: 40px;
 }
 #drop-zone {
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 2px;
-  width: min(480px, 90vw);
-  padding: 64px 48px 40px;
+  width: min(480px, 92vw);
+  padding: clamp(28px, 6vw, 64px) clamp(20px, 5vw, 48px) clamp(20px, 4vw, 40px);
   text-align: center;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
   position: relative;
+  /* don't trigger file picker on mobile tap — handled in JS */
 }
 #drop-zone:hover, #drop-zone.drag { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.02); }
 #drop-zone::before {
@@ -47,11 +52,32 @@ html, body {
   pointer-events: none;
 }
 .drop-glyph {
-  font-size: 32px; margin-bottom: 24px; display: block;
+  font-size: clamp(20px, 5vw, 32px); margin-bottom: 20px; display: block;
   opacity: 0.3; letter-spacing: -0.05em;
 }
-.drop-headline { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 10px; font-weight: 300; }
-.drop-sub { font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 0.06em; line-height: 2; }
+.drop-headline { font-size: clamp(11px, 2.5vw, 13px); letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 10px; font-weight: 300; }
+.drop-sub { font-size: clamp(10px, 2vw, 11px); color: rgba(255,255,255,0.25); letter-spacing: 0.06em; line-height: 2; }
+
+/* Mobile: show a tap-to-browse button instead of "drop" instruction */
+.mobile-browse-btn {
+  display: none;
+  margin: 16px auto 0;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.75);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 12px 24px; border-radius: 2px; cursor: pointer;
+  transition: background 0.2s;
+}
+.mobile-browse-btn:active { background: rgba(255,255,255,0.14); }
+@media (hover: none) and (pointer: coarse) {
+  .mobile-browse-btn { display: inline-block; }
+  .drop-sub { display: none; }
+  /* Disable the whole drop-zone from acting as a click-to-browse on mobile */
+  #drop-zone { cursor: default; }
+}
+
 #home-canvas {
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none;
@@ -60,10 +86,10 @@ html, body {
 
 /* SAMPLE TRACKS */
 .sample-divider {
-  margin: 24px 0 16px;
+  margin: 20px 0 14px;
   display: flex; align-items: center; gap: 12px;
   border-top: 1px solid rgba(255,255,255,0.06);
-  padding-top: 20px;
+  padding-top: 18px;
 }
 .sample-divider span {
   font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
@@ -76,37 +102,36 @@ html, body {
   flex: 1; min-width: 0;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 2px; padding: 12px 10px;
+  border-radius: 2px; padding: clamp(8px, 2vw, 12px) clamp(6px, 1.5vw, 10px);
   cursor: pointer; display: flex; flex-direction: column;
   align-items: center; gap: 5px;
   transition: border-color 0.2s, background 0.2s;
+  /* Ensure tappable on mobile */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .sample-btn:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.07); }
-.sample-btn:active { background: rgba(255,255,255,0.1); }
-.sample-glyph { font-size: 16px; opacity: 0.5; }
+.sample-btn:active { background: rgba(255,255,255,0.12); }
+.sample-glyph { font-size: clamp(13px, 3vw, 16px); opacity: 0.5; }
 .sample-name {
-  font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  font-size: clamp(9px, 2vw, 10px); letter-spacing: 0.12em; text-transform: uppercase;
   color: rgba(255,255,255,0.6); font-weight: 400;
 }
 .sample-vibe { font-size: 9px; color: rgba(255,255,255,0.22); letter-spacing: 0.06em; }
 
 /* SECRET TRACKS */
 .secret-divider {
-  margin: 16px 0 16px;
+  margin: 14px 0 14px;
   display: flex; align-items: center; gap: 12px;
   border-top: 1px solid rgba(255,255,255,0.06);
-  padding-top: 16px;
+  padding-top: 14px;
 }
 .secret-divider span {
   font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
   color: rgba(255,255,255,0.18); white-space: nowrap; width: 100%; text-align: center;
 }
-#secret-tracks {
-  display: none;
-}
-#secret-tracks.revealed {
-  display: block;
-}
+#secret-tracks { display: none; }
+#secret-tracks.revealed { display: block; }
 .secret-btn {
   background: rgba(255,255,255,0.025);
   border-color: rgba(255,255,255,0.07) !important;
@@ -114,9 +139,8 @@ html, body {
 .secret-btn:hover { border-color: rgba(180,120,255,0.35) !important; background: rgba(180,120,255,0.05) !important; }
 .secret-btn .sample-glyph { color: rgba(180,120,255,0.6); opacity: 1; }
 .secret-btn .sample-name { color: rgba(200,160,255,0.6); }
-/* logo click hint dots */
 #logo-hint {
-  display: flex; gap: 4px; justify-content: center; margin-top: -48px; margin-bottom: 32px;
+  display: flex; gap: 4px; justify-content: center; margin-top: -32px; margin-bottom: 28px;
   height: 6px; align-items: center;
 }
 .hint-dot {
@@ -160,7 +184,9 @@ html, body {
 /* ── UI OVERLAY ──────────────────────────────────────── */
 #ui {
   position: fixed; bottom: 0; left: 0; right: 0;
-  padding: 20px 32px 24px;
+  padding: clamp(12px, 2vw, 20px) clamp(14px, 3vw, 32px) clamp(14px, 3vw, 24px);
+  /* extra bottom padding for iOS safe area */
+  padding-bottom: max(clamp(14px, 3vw, 24px), env(safe-area-inset-bottom));
   background: linear-gradient(transparent, rgba(0,0,0,0.92));
   z-index: 10;
   transition: opacity 0.6s;
@@ -168,7 +194,7 @@ html, body {
 #ui.hidden { opacity: 0; pointer-events: none; }
 
 #transport {
-  display: flex; align-items: center; gap: 14px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: clamp(7px, 1.5vw, 14px); margin-bottom: 8px;
 }
 .t-btn {
   background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.28);
@@ -177,18 +203,21 @@ html, body {
   padding: 0; display: flex; align-items: center; justify-content: center;
   border-radius: 2px; transition: border-color 0.2s, color 0.2s, background 0.2s;
   flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .t-btn:hover { border-color: rgba(255,255,255,0.65); color: #fff; background: rgba(255,255,255,0.1); }
-.t-btn:active { background: rgba(255,255,255,0.15); }
-#play-btn { width: 42px; height: 42px; font-size: 14px; }
-.icon-btn { width: 32px; height: 32px; font-size: 13px; }
-#back-btn { width: 32px; height: 32px; }
+.t-btn:active { background: rgba(255,255,255,0.18); }
+#play-btn { width: clamp(36px, 8vw, 42px); height: clamp(36px, 8vw, 42px); font-size: 14px; }
+.icon-btn { width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px); font-size: 13px; }
+#back-btn { width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px); }
 
 /* YouTube-style progress bar */
 #progress-wrap {
-  flex: 1; height: 18px;
+  flex: 1; height: 24px;
   display: flex; align-items: center;
   cursor: pointer; position: relative; user-select: none;
+  touch-action: none; /* prevent scroll while scrubbing */
 }
 #progress-track {
   position: absolute; left: 0; right: 0; height: 3px;
@@ -211,11 +240,18 @@ html, body {
 #progress-wrap:hover #progress-handle,
 #progress-wrap.scrubbing #progress-handle { transform: translateY(-50%) scale(1); }
 
-#time-lbl { font-size: 11px; color: rgba(255,255,255,0.35); min-width: 96px; text-align: right; letter-spacing: 0.04em; }
+#time-lbl {
+  font-size: clamp(9px, 2vw, 11px); color: rgba(255,255,255,0.35);
+  min-width: clamp(72px, 15vw, 96px); text-align: right; letter-spacing: 0.04em;
+}
 
-/* Volume control */
+/* Volume control — hide on mobile to save space */
 #vol-wrap {
   display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+}
+@media (max-width: 480px) {
+  #vol-wrap { display: none; }
+  #time-lbl { min-width: 60px; }
 }
 #vol-icon {
   font-size: 13px; color: rgba(255,255,255,0.5); cursor: pointer;
@@ -247,35 +283,40 @@ html, body {
 #vol-slider-wrap.scrubbing #vol-handle { transform: translateY(-50%) scale(1); }
 
 #meta-row {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 12px; margin-bottom: 8px;
 }
-#song-lbl { font-size: 14px; color: rgba(255,255,255,0.75); letter-spacing: 0.08em; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 300; }
+#song-lbl {
+  font-size: clamp(11px, 3vw, 14px); color: rgba(255,255,255,0.75);
+  letter-spacing: 0.08em; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 300;
+}
 #vibe-pill {
-  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
-  padding: 5px 13px; border-radius: 2px; border: 1px solid; white-space: nowrap;
+  font-size: clamp(9px, 2vw, 10px); letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 2px; border: 1px solid; white-space: nowrap;
   font-weight: 400;
 }
 
 /* MODE BAR */
 #mode-bar {
-  position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+  position: fixed; top: max(16px, env(safe-area-inset-top, 16px)); left: 50%; transform: translateX(-50%);
   display: flex; gap: 2px; z-index: 10; transition: opacity 0.6s;
   background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 3px; padding: 3px;
 }
 #mode-bar.hidden { opacity: 0; pointer-events: none; }
 .m-btn {
   font-family: 'IBM Plex Mono', monospace;
-  font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+  font-size: clamp(8px, 2vw, 9px); letter-spacing: 0.14em; text-transform: uppercase;
   background: none; border: none; color: rgba(255,255,255,0.3);
-  cursor: pointer; padding: 6px 14px; border-radius: 2px;
+  cursor: pointer; padding: clamp(5px, 1.2vw, 6px) clamp(10px, 2.5vw, 14px); border-radius: 2px;
   transition: color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .m-btn:hover { color: rgba(255,255,255,0.65); }
 .m-btn.active { color: #fff; background: rgba(255,255,255,0.1); }
 
 /* REC INDICATOR */
 #rec-dot {
-  position: fixed; top: 22px; right: 22px;
+  position: fixed; top: max(16px, env(safe-area-inset-top, 16px)); right: 16px;
   font-size: 9px; letter-spacing: 0.15em; color: #ff4444;
   display: none; align-items: center; gap: 6px;
   z-index: 10; text-transform: uppercase;
@@ -289,22 +330,28 @@ html, body {
 
 /* TWEAKPANE */
 #tweak-toggle {
-  position: fixed; bottom: 120px; left: 22px; z-index: 12;
+  position: fixed; bottom: clamp(90px, 18vw, 120px); left: 16px; z-index: 12;
   width: 32px; height: 32px; border-radius: 2px;
   background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2);
   color: rgba(255,255,255,0.6); font-size: 14px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: color 0.2s, border-color 0.2s, opacity 0.6s;
+  -webkit-tap-highlight-color: transparent;
 }
 #tweak-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
 #tweak-toggle.hidden { opacity: 0; pointer-events: none; }
 #tweak-panel {
-  position: fixed; left: 62px; bottom: 100px;
-  width: 260px; background: rgba(8,8,8,0.92);
+  position: fixed; left: 56px; bottom: 100px;
+  width: min(260px, calc(100vw - 72px));
+  background: rgba(8,8,8,0.92);
   border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;
   padding: 14px 16px 10px; z-index: 12;
   max-height: calc(100vh - 200px); overflow-y: auto;
   transition: opacity 0.6s;
+  /* On small screens, keep it fully in view */
+}
+@media (max-width: 380px) {
+  #tweak-panel { left: 8px; width: calc(100vw - 16px); }
 }
 #tweak-panel.hidden { opacity: 0; pointer-events: none; }
 .tp-title {
@@ -323,7 +370,7 @@ input[type=range].tp-slider {
   border-radius: 1px; outline: none; cursor: pointer;
 }
 input[type=range].tp-slider::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 9px; height: 9px;
+  -webkit-appearance: none; width: 12px; height: 12px;
   border-radius: 50%; background: rgba(255,255,255,0.7); cursor: pointer;
 }
 .tp-reset {
@@ -336,7 +383,7 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 
 /* SPEED CONTROL */
 #speed-panel {
-  position: fixed; bottom: 120px; right: 22px;
+  position: fixed; bottom: clamp(90px, 18vw, 120px); right: 16px;
   z-index: 10; display: flex; flex-direction: column; gap: 6px;
   align-items: flex-end; transition: opacity 0.6s;
 }
@@ -352,16 +399,15 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 #speed-wrap { display: flex; align-items: center; gap: 8px; }
 input[type=range]#speed-slider {
   -webkit-appearance: none; appearance: none;
-  width: 90px; height: 2px;
+  width: clamp(60px, 14vw, 90px); height: 2px;
   background: rgba(255,255,255,0.15);
   border-radius: 1px; outline: none; cursor: pointer;
 }
 input[type=range]#speed-slider::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 10px; height: 10px;
+  -webkit-appearance: none; width: 12px; height: 12px;
   border-radius: 50%; background: rgba(255,255,255,0.75);
   border: none; cursor: pointer;
 }
-
 
 #dl-modal {
   position: fixed; inset: 0; background: rgba(0,0,0,0.8);
@@ -370,7 +416,7 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
 #dl-modal.show { display: flex; }
 #dl-box {
   background: #0d0d0d; border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 4px; padding: 36px 40px; min-width: 320px; text-align: center;
+  border-radius: 4px; padding: 36px 40px; min-width: min(320px, 88vw); text-align: center;
 }
 #dl-box h3 { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 28px; font-weight: 300; }
 .dl-opt {
@@ -409,6 +455,8 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
     <span class="drop-glyph">◎ ◈ ◉</span>
     <div class="drop-headline">Drop your audio file</div>
     <div class="drop-sub">MP3 · WAV · FLAC · OGG · M4A<br>Sentiment analysis included</div>
+    <!-- Mobile tap-to-browse button -->
+    <button class="mobile-browse-btn" id="mobile-browse-btn">Browse files</button>
     <div class="sample-divider">
       <span>or try a sample</span>
     </div>
@@ -527,8 +575,12 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
 
 <script>
 // ═══════════════════════════════════════════════════════
-//  STATE
+//  DPR-AWARE CANVAS HELPERS
+//  All drawing uses logical pixels (W×H); the canvas
+//  backing store is W*DPR × H*DPR so lines are crisp.
 // ═══════════════════════════════════════════════════════
+const DPR = Math.min(window.devicePixelRatio || 1, 3); // cap at 3× to avoid OOM
+
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const glowCanvas = document.getElementById('glow-canvas');
@@ -611,50 +663,36 @@ const faviconLink = document.createElement('link');
 faviconLink.rel = 'icon';
 document.head.appendChild(faviconLink);
 
-// particles
 let favTime = 0;
   
 function updateFaviconWave() {
   const size = 32;
   const cols = 8;
   const rows = 6;
-
   const cellW = size / cols;
   const cellH = size / rows;
-
   favCtx.fillStyle = "#000";
   favCtx.fillRect(0, 0, size, size);
-
   favTime += 0.06;
-
   for (let x = 0; x < cols; x++) {
-
-    // 🌊 vertical wave (THIS is the key change)
     const wave = Math.sin(favTime + x * 0.6);
-
-    // map [-1,1] → [1, rows]
     const visibleRows = Math.floor(((wave + 1) / 2) * rows);
-
     for (let y = 0; y < visibleRows; y++) {
-
       const px = x * cellW + cellW / 2;
-      const py = size - (y * cellH + cellH / 2); // grow upward
-
+      const py = size - (y * cellH + cellH / 2);
       favCtx.beginPath();
       favCtx.arc(px, py, 1.2, 0, Math.PI * 2);
       favCtx.fillStyle = "rgba(255,255,255,0.85)";
       favCtx.fill();
     }
   }
-
   faviconLink.href = faviconCanvas.toDataURL("image/png");
 }
 
 // ═══════════════════════════════════════════════════════
-//  RESIZE — adaptive grid density based on screen aspect
+//  RESIZE — DPR-correct sizing
 // ═══════════════════════════════════════════════════════
-let W, H;
-// UI_HEIGHT is the reserved space at the bottom so visuals never overlap controls
+let W, H;  // LOGICAL dimensions (CSS pixels)
 const UI_HEIGHT = 110;
 
 function getAdaptiveGrid() {
@@ -672,10 +710,32 @@ function getAdaptiveNoiseFreq() {
 }
 
 function resize() {
-  W = canvas.width = glowCanvas.width = window.innerWidth;
-  H = canvas.height = glowCanvas.height = window.innerHeight;
+  // Logical size = CSS layout size
+  W = window.innerWidth;
+  H = window.innerHeight;
+
+  // Physical backing store = logical × DPR  →  crisp on retina
+  for (const c of [canvas, glowCanvas]) {
+    c.width  = Math.round(W * DPR);
+    c.height = Math.round(H * DPR);
+    c.style.width  = W + 'px';
+    c.style.height = H + 'px';
+  }
+
+  // Scale all drawing contexts once so all coordinates are in logical pixels
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  glowCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  // Home canvas (inside the drop screen overlay)
   const hc = document.getElementById('home-canvas');
-  if (hc) { hc.width = hc.offsetWidth; hc.height = hc.offsetHeight; }
+  if (hc) {
+    const lw = hc.offsetWidth  || W;
+    const lh = hc.offsetHeight || H;
+    hc.width  = Math.round(lw * DPR);
+    hc.height = Math.round(lh * DPR);
+    hc.style.width  = lw + 'px';
+    hc.style.height = lh + 'px';
+  }
 }
 resize();
 window.addEventListener('resize', () => { resize(); rebuildGrid(); });
@@ -787,22 +847,11 @@ function generatePaletteFromAudio() {
   const mids = S.mid;
   const highs = S.hi;
   const noisiness = S.snare + S.cymbal;
-
-  let baseHue =
-    bass * 20 +
-    mids * 140 +
-    highs * 260;
-
+  let baseHue = bass * 20 + mids * 140 + highs * 260;
   baseHue = baseHue % 360;
-
   const spread = 30 + noisiness * 120;
-
   return {
-    hues: [
-      baseHue,
-      (baseHue + spread) % 360,
-      (baseHue + spread * 2) % 360
-    ],
+    hues: [baseHue, (baseHue + spread) % 360, (baseHue + spread * 2) % 360],
     saturation: 60 + brightness * 40,
     lightnessBase: 35 + energy * 30,
     trailAlpha: 0.02 + energy * 0.04,
@@ -814,17 +863,13 @@ function generatePaletteFromAudio() {
 let dynamicPalette = { ...PALETTE };
 
 function smoothPalette(target) {
-  const lerp = (a,b,t) => a + (b-a)*t;
-
-  dynamicPalette.saturation = lerp(dynamicPalette.saturation, target.saturation, 0.08);
-  dynamicPalette.lightnessBase = lerp(dynamicPalette.lightnessBase, target.lightnessBase, 0.08);
-  dynamicPalette.trailAlpha = lerp(dynamicPalette.trailAlpha, target.trailAlpha, 0.05);
-  dynamicPalette.glowIntensity = lerp(dynamicPalette.glowIntensity, target.glowIntensity, 0.08);
-  dynamicPalette.speedMult = lerp(dynamicPalette.speedMult, target.speedMult, 0.05);
-
-  for (let i = 0; i < 3; i++) {
-    dynamicPalette.hues[i] = lerp(dynamicPalette.hues[i], target.hues[i], 0.08);
-  }
+  const lp = (a,b,t) => a + (b-a)*t;
+  dynamicPalette.saturation   = lp(dynamicPalette.saturation,   target.saturation,   0.08);
+  dynamicPalette.lightnessBase= lp(dynamicPalette.lightnessBase,target.lightnessBase,0.08);
+  dynamicPalette.trailAlpha   = lp(dynamicPalette.trailAlpha,   target.trailAlpha,   0.05);
+  dynamicPalette.glowIntensity= lp(dynamicPalette.glowIntensity,target.glowIntensity,0.08);
+  dynamicPalette.speedMult    = lp(dynamicPalette.speedMult,    target.speedMult,    0.05);
+  for (let i = 0; i < 3; i++) dynamicPalette.hues[i] = lp(dynamicPalette.hues[i], target.hues[i], 0.08);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -865,12 +910,10 @@ let panelOpen = false;
 function buildPanel() {
   const panel = document.getElementById('tweak-panel');
   panel.innerHTML = '';
-
   const title = document.createElement('div');
   title.className = 'tp-title';
   title.textContent = 'Flow Parameters';
   panel.appendChild(title);
-
   const defs = [
     { key:'lenScale',  label:'Bar Length',  min:0.1,  max:2.0, step:0.05, fmt:v=>v.toFixed(2) },
     { key:'maxRot',    label:'Max Rotation',min:0.1,  max:2.0, step:0.05, fmt:v=>(v*180|0)+'°' },
@@ -882,7 +925,6 @@ function buildPanel() {
     { key:'trailFade', label:'Trail Fade',  min:1,    max:20,  step:1,    fmt:v=>v },
     { key:'alpha',     label:'Opacity',     min:0.1,  max:1.0, step:0.02, fmt:v=>v.toFixed(2) },
   ];
-
   const autoRow = document.createElement('div');
   autoRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;';
   const autoLbl = document.createElement('div');
@@ -896,7 +938,6 @@ function buildPanel() {
   autoRow.appendChild(autoLbl);
   autoRow.appendChild(autoChk);
   panel.appendChild(autoRow);
-
   if (!P.autoGrid) {
     const gridDefs = [
       { key:'cols', label:'Columns', min:5, max:50, step:1, fmt:v=>v|0 },
@@ -904,16 +945,13 @@ function buildPanel() {
     ];
     gridDefs.forEach(d => addSlider(panel, d));
   }
-
   defs.forEach(d => addSlider(panel, d));
-
   const reset = document.createElement('button');
   reset.className = 'tp-reset';
   reset.textContent = 'Reset defaults';
   reset.addEventListener('click', () => {
     Object.assign(P, { lenScale:0.55,maxRot:1.0,noiseFreq:3.0,amp:1.0,speed:4.0,thickMin:0.5,thickMax:18.0,trailFade:4,alpha:0.55,autoGrid:true });
-    buildPanel();
-    rebuildGrid();
+    buildPanel(); rebuildGrid();
   });
   panel.appendChild(reset);
 }
@@ -1152,7 +1190,6 @@ function drawLayers() {
 
   ctx.fillStyle = 'rgba(255,255,255,0.06)';
   ctx.font = `300 9px 'IBM Plex Mono'`;
-  ctx.letterSpacing = '0.2em';
   ctx.textAlign = 'right';
   ctx.fillText('SPECTRUM', W - 26, 22);
   ctx.textAlign = 'left';
@@ -1288,9 +1325,7 @@ async function callLLM(prompt) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt })
   });
-
   if (!res.ok) throw new Error('LLM failed');
-
   const data = await res.json();
   return data.result;
 }
@@ -1298,97 +1333,42 @@ async function callLLM(prompt) {
 // ═══════════════════════════════════════════════════════
 //  SENTIMENT ANALYSIS
 // ═══════════════════════════════════════════════════════
-
 function detectVibe(S) {
   const energy = (S.bass + S.low + S.mid) / 3;
   const brightness = (S.hi + S.air) / 2;
   const aggression = S.snare + S.cymbal;
   const warmth = S.bass + S.low;
   const clarity = S.vocal + S.string;
-
   const score = {
     energetic: 0, melancholic: 0, dreamy: 0, euphoric: 0,
     tense: 0, serene: 0, dark: 0, psychedelic: 0,
   };
-
-  score.energetic += energy * 1.2;
-  score.energetic += brightness * 0.8;
-  score.energetic += aggression * 0.6;
-
-  score.euphoric += energy * 1.0;
-  score.euphoric += brightness * 0.6;
-  score.euphoric += warmth * 0.5;
-
-  score.melancholic += (1 - energy) * 1.2;
-  score.melancholic += (1 - brightness) * 0.8;
-  score.melancholic += clarity * 0.5;
-
-  score.dreamy += S.air * 1.2;
-  score.dreamy += clarity * 0.7;
-  score.dreamy += (1 - aggression) * 0.5;
-
-  score.tense += aggression * 1.2;
-  score.tense += brightness * 0.5;
-  score.tense += energy * 0.4;
-
-  score.dark += (1 - brightness) * 1.0;
-  score.dark += aggression * 0.6;
-  score.dark += (1 - clarity) * 0.4;
-
-  score.serene += (1 - energy) * 1.2;
-  score.serene += (1 - aggression) * 0.8;
-  score.serene += S.air * 0.4;
-
-  score.psychedelic += 0.3;
-  score.psychedelic += Math.abs(S.mid - S.hi) * 0.5;
-  score.psychedelic += brightness * 0.4;
-
-  let best = "dreamy";
-  let max = -Infinity;
-
-  for (const k in score) {
-    if (score[k] > max) {
-      max = score[k];
-      best = k;
-    }
-  }
-
+  score.energetic += energy * 1.2; score.energetic += brightness * 0.8; score.energetic += aggression * 0.6;
+  score.euphoric += energy * 1.0; score.euphoric += brightness * 0.6; score.euphoric += warmth * 0.5;
+  score.melancholic += (1 - energy) * 1.2; score.melancholic += (1 - brightness) * 0.8; score.melancholic += clarity * 0.5;
+  score.dreamy += S.air * 1.2; score.dreamy += clarity * 0.7; score.dreamy += (1 - aggression) * 0.5;
+  score.tense += aggression * 1.2; score.tense += brightness * 0.5; score.tense += energy * 0.4;
+  score.dark += (1 - brightness) * 1.0; score.dark += aggression * 0.6; score.dark += (1 - clarity) * 0.4;
+  score.serene += (1 - energy) * 1.2; score.serene += (1 - aggression) * 0.8; score.serene += S.air * 0.4;
+  score.psychedelic += 0.3; score.psychedelic += Math.abs(S.mid - S.hi) * 0.5; score.psychedelic += brightness * 0.4;
+  let best = "dreamy", max = -Infinity;
+  for (const k in score) { if (score[k] > max) { max = score[k]; best = k; } }
   return best;
 }
 
 async function analyzeVibe(filename, energyProfile) {
   const rms = parseFloat(energyProfile.rms);
   const zcr = parseFloat(energyProfile.zcr);
-
-  const prompt = `
-Song: "${filename}"
-RMS: ${rms}
-ZCR: ${zcr}
-Energy: bass=${S.bass.toFixed(2)}, mid=${S.mid.toFixed(2)}, hi=${S.hi.toFixed(2)}
-
-Return ONE word:
-euphoric, melancholic, energetic, dreamy, tense, serene, dark, psychedelic
-`;
-
+  const prompt = `Song: "${filename}"\nRMS: ${rms}\nZCR: ${zcr}\nEnergy: bass=${S.bass.toFixed(2)}, mid=${S.mid.toFixed(2)}, hi=${S.hi.toFixed(2)}\n\nReturn ONE word:\neuphoric, melancholic, energetic, dreamy, tense, serene, dark, psychedelic\n`;
   let vibe;
-
   try {
     const llmVibe = await callLLM(prompt);
-    if (llmVibe) {
-      vibe = llmVibe.trim().toLowerCase();
-    } else {
-      throw new Error("Empty LLM response");
-    }
+    if (llmVibe) { vibe = llmVibe.trim().toLowerCase(); } else { throw new Error("Empty LLM response"); }
   } catch (e) {
     console.log('LLM failed, using heuristic:', e.message);
     vibe = detectVibe(S);
   }
-
-  if (!VIBE_PALETTES[vibe]) {
-    console.log('Invalid vibe from LLM, fallback → heuristic');
-    vibe = detectVibe(S);
-  }
-
+  if (!VIBE_PALETTES[vibe]) { console.log('Invalid vibe, fallback'); vibe = detectVibe(S); }
   return vibe;
 }
 
@@ -1399,9 +1379,7 @@ async function estimateEnergyProfile(buffer) {
   for (let i = 0; i < samples.length; i++) rms += samples[i] * samples[i];
   rms = Math.sqrt(rms / samples.length);
   let zc = 0;
-  for (let i = 1; i < samples.length; i++) {
-    if (samples[i] * samples[i-1] < 0) zc++;
-  }
+  for (let i = 1; i < samples.length; i++) { if (samples[i] * samples[i-1] < 0) zc++; }
   const zcr = zc / samples.length;
   return { rms: rms.toFixed(3), zcr: zcr.toFixed(4), duration: buffer.duration.toFixed(1) };
 }
@@ -1416,8 +1394,12 @@ async function loadAndPlay(file) {
   analysis.classList.remove('off');
   document.getElementById('analysis-status').textContent = 'Decoding audio…';
 
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  // On iOS, AudioContext must be created/resumed inside a user-gesture.
+  // We ensure that here since loadAndPlay is always called from a tap/click.
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+  }
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
   if (source) { try { source.stop(); } catch(e){} }
 
   const ab = await file.arrayBuffer();
@@ -1536,8 +1518,7 @@ let scrubWasPlaying = false;
     scrubWasPlaying = isPlaying;
     wrap.classList.add('scrubbing');
     if (isPlaying) {
-      userPaused = true;
-      isPlaying = false;
+      userPaused = true; isPlaying = false;
       if (source) { source.onended = null; try { source.stop(); } catch(e){} source = null; }
     }
     applyScrub(clientX);
@@ -1556,17 +1537,15 @@ let scrubWasPlaying = false;
     if (!isScrubbing) return;
     isScrubbing = false;
     wrap.classList.remove('scrubbing');
-    if (scrubWasPlaying) {
-      playFrom(pauseOffset);
-    }
+    if (scrubWasPlaying) playFrom(pauseOffset);
   }
 
   wrap.addEventListener('mousedown', e => { e.preventDefault(); startScrub(e.clientX); });
   document.addEventListener('mousemove', e => { if (isScrubbing) applyScrub(e.clientX); });
   document.addEventListener('mouseup', () => endScrub());
 
-  wrap.addEventListener('touchstart', e => { startScrub(e.touches[0].clientX); }, { passive: true });
-  document.addEventListener('touchmove', e => { if (isScrubbing) applyScrub(e.touches[0].clientX); }, { passive: true });
+  wrap.addEventListener('touchstart', e => { e.stopPropagation(); startScrub(e.touches[0].clientX); }, { passive: true });
+  document.addEventListener('touchmove', e => { if (isScrubbing) { e.preventDefault(); applyScrub(e.touches[0].clientX); } }, { passive: false });
   document.addEventListener('touchend', () => endScrub());
 })();
 
@@ -1600,28 +1579,12 @@ let isVolScrubbing = false;
   });
 
   wrap.addEventListener('mousedown', e => {
-    e.preventDefault();
-    isVolScrubbing = true;
-    wrap.classList.add('scrubbing');
-    setVolume(getPct(e.clientX));
+    e.preventDefault(); isVolScrubbing = true; wrap.classList.add('scrubbing'); setVolume(getPct(e.clientX));
   });
-  document.addEventListener('mousemove', e => {
-    if (!isVolScrubbing) return;
-    setVolume(getPct(e.clientX));
-  });
-  document.addEventListener('mouseup', () => {
-    if (isVolScrubbing) { isVolScrubbing = false; wrap.classList.remove('scrubbing'); }
-  });
-
-  wrap.addEventListener('touchstart', e => {
-    isVolScrubbing = true;
-    wrap.classList.add('scrubbing');
-    setVolume(getPct(e.touches[0].clientX));
-  }, { passive: true });
-  document.addEventListener('touchmove', e => {
-    if (!isVolScrubbing) return;
-    setVolume(getPct(e.touches[0].clientX));
-  }, { passive: true });
+  document.addEventListener('mousemove', e => { if (!isVolScrubbing) return; setVolume(getPct(e.clientX)); });
+  document.addEventListener('mouseup', () => { if (isVolScrubbing) { isVolScrubbing = false; wrap.classList.remove('scrubbing'); } });
+  wrap.addEventListener('touchstart', e => { isVolScrubbing = true; wrap.classList.add('scrubbing'); setVolume(getPct(e.touches[0].clientX)); }, { passive: true });
+  document.addEventListener('touchmove', e => { if (!isVolScrubbing) return; setVolume(getPct(e.touches[0].clientX)); }, { passive: true });
   document.addEventListener('touchend', () => { isVolScrubbing = false; wrap.classList.remove('scrubbing'); });
 
   setVolume(0.8);
@@ -1697,11 +1660,29 @@ document.addEventListener('touchstart', showUI, { passive: true });
 // ═══════════════════════════════════════════════════════
 //  EVENTS
 // ═══════════════════════════════════════════════════════
-document.getElementById('drop-zone').addEventListener('click', () => document.getElementById('file-input').click());
+
+// Desktop: click anywhere on drop-zone opens file picker
+// Mobile: only the explicit button does (avoids double-trigger issues)
+const isTouchDevice = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
+document.getElementById('drop-zone').addEventListener('click', (e) => {
+  // Don't trigger if a sample button was clicked
+  if (e.target.closest('.sample-btn')) return;
+  // Don't trigger on mobile (mobile-browse-btn handles it)
+  if (isTouchDevice()) return;
+  document.getElementById('file-input').click();
+});
+
+document.getElementById('mobile-browse-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('file-input').click();
+});
+
 document.getElementById('file-input').addEventListener('change', e => {
   if (e.target.files[0]) { homeAnimActive = false; loadAndPlay(e.target.files[0]); }
 });
 
+// Drag and drop (desktop only)
 document.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag'); });
 document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.getElementById('drop-zone').classList.remove('drag'); });
 document.addEventListener('drop', e => {
@@ -1747,50 +1728,6 @@ document.getElementById('dl-video-only').addEventListener('click', () => startRe
 document.getElementById('dl-video-audio').addEventListener('click', () => startRecording(true));
 document.getElementById('dl-cancel').addEventListener('click', () => document.getElementById('dl-modal').classList.remove('show'));
 
-// ── PROGRESS BAR — draggable scrubber ──
-(function() {
-  const wrap = document.getElementById('progress-wrap');
-  const fill = document.getElementById('progress-fill');
-  let scrubbing = false;
-
-  function seekTo(clientX) {
-    if (!audioBuffer) return;
-    const rect = wrap.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const newOffset = pct * audioBuffer.duration;
-    fill.style.width = (pct * 100) + '%';
-    const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-    document.getElementById('time-lbl').textContent = `${fmt(newOffset)} / ${fmt(audioBuffer.duration)}`;
-    pauseOffset = newOffset;
-    if (isPlaying) playFrom(newOffset);
-    else startTime = (audioCtx ? audioCtx.currentTime : 0) - newOffset;
-  }
-
-  wrap.addEventListener('mousedown', e => {
-    if (!audioBuffer) return;
-    scrubbing = true;
-    wrap.style.cursor = 'grabbing';
-    seekTo(e.clientX);
-  });
-  document.addEventListener('mousemove', e => {
-    if (!scrubbing) return;
-    seekTo(e.clientX);
-  });
-  document.addEventListener('mouseup', () => {
-    if (scrubbing) { scrubbing = false; wrap.style.cursor = ''; }
-  });
-  wrap.addEventListener('touchstart', e => {
-    if (!audioBuffer) return;
-    scrubbing = true;
-    seekTo(e.touches[0].clientX);
-  }, { passive: true });
-  document.addEventListener('touchmove', e => {
-    if (!scrubbing) return;
-    seekTo(e.touches[0].clientX);
-  }, { passive: true });
-  document.addEventListener('touchend', () => { scrubbing = false; });
-})();
-
 document.querySelectorAll('.m-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.m-btn').forEach(b => b.classList.remove('active'));
@@ -1826,43 +1763,31 @@ document.addEventListener('keydown', e => {
 
 // ── SECRET TRACKS UNLOCK (triple-click logo) ──────────
 (function() {
-  let clicks = 0;
-  let timer = null;
+  let clicks = 0, timer = null;
   const logo = document.getElementById('logo-click-target');
   const dots = [document.getElementById('hd1'), document.getElementById('hd2'), document.getElementById('hd3')];
-
   logo.addEventListener('click', () => {
     clicks++;
     if (clicks <= 3) dots[clicks - 1].classList.add('lit');
     if (timer) clearTimeout(timer);
-
     if (clicks >= 3) {
-      // Unlock!
       document.getElementById('secret-tracks').classList.add('revealed');
-      clicks = 0;
-      dots.forEach(d => d.classList.remove('lit'));
-      return;
+      clicks = 0; dots.forEach(d => d.classList.remove('lit')); return;
     }
-
-    timer = setTimeout(() => {
-      clicks = 0;
-      dots.forEach(d => d.classList.remove('lit'));
-    }, 1200);
+    timer = setTimeout(() => { clicks = 0; dots.forEach(d => d.classList.remove('lit')); }, 1200);
   });
 })();
 
 // ── SAMPLE TRACKS ─────────────────────────────────────
 document.querySelectorAll('.sample-btn').forEach(btn => {
   btn.addEventListener('click', async e => {
-    e.stopPropagation(); // don't trigger the drop-zone file picker
+    e.stopPropagation();
     const src  = btn.dataset.src;
     const name = btn.dataset.name;
-
     const nameEl = btn.querySelector('.sample-name');
     const origName = nameEl.textContent;
     nameEl.textContent = 'Loading…';
     btn.style.pointerEvents = 'none';
-
     try {
       const res = await fetch(src);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1873,34 +1798,48 @@ document.querySelectorAll('.sample-btn').forEach(btn => {
     } catch (err) {
       console.error('Sample load failed:', err);
       nameEl.textContent = 'Failed';
-      setTimeout(() => {
-        nameEl.textContent = origName;
-        btn.style.pointerEvents = '';
-      }, 2000);
+      setTimeout(() => { nameEl.textContent = origName; btn.style.pointerEvents = ''; }, 2000);
     }
   });
 });
 
 // ═══════════════════════════════════════════════════════
-//  HOME SCREEN ANIMATION
+//  HOME SCREEN ANIMATION  (DPR-aware)
 // ═══════════════════════════════════════════════════════
 let homeAnimActive  = true;
 let homeAnimRunning = false;
 
 function startHomeAnim() {
   const hc = document.getElementById('home-canvas');
+  const lw = hc.offsetWidth  || W;
+  const lh = hc.offsetHeight || H;
+  hc.width  = Math.round(lw * DPR);
+  hc.height = Math.round(lh * DPR);
+  hc.style.width  = lw + 'px';
+  hc.style.height = lh + 'px';
   const hx = hc.getContext('2d');
-  let hW = hc.offsetWidth, hH = hc.offsetHeight;
-  hc.width = hW; hc.height = hH;
+  hx.setTransform(DPR, 0, 0, DPR, 0, 0);  // draw in logical px
+  let hW = lw, hH = lh;
 
   window.addEventListener('resize', () => {
-    hW = hc.width = hc.offsetWidth;
-    hH = hc.height = hc.offsetHeight;
+    hW = hc.offsetWidth || W;
+    hH = hc.offsetHeight || H;
+    hc.width  = Math.round(hW * DPR);
+    hc.height = Math.round(hH * DPR);
+    hc.style.width  = hW + 'px';
+    hc.style.height = hH + 'px';
+    hx.setTransform(DPR, 0, 0, DPR, 0, 0);
   });
 
   let mx = 0.5, my = 0.5, smx = 0.5, smy = 0.5;
   const onMouseMove = e => { mx = e.clientX / window.innerWidth; my = e.clientY / window.innerHeight; };
   document.addEventListener('mousemove', onMouseMove);
+  // Touch parallax for home canvas
+  const onTouch = e => {
+    mx = e.touches[0].clientX / window.innerWidth;
+    my = e.touches[0].clientY / window.innerHeight;
+  };
+  document.addEventListener('touchmove', onTouch, { passive: true });
 
   const DOT_COLS = 28, DOT_ROWS = 20;
   let hTick = 0;
@@ -1910,6 +1849,7 @@ function startHomeAnim() {
     if (!homeAnimActive) {
       homeAnimRunning = false;
       document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('touchmove', onTouch);
       hx.clearRect(0, 0, hW, hH);
       return;
     }
