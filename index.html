@@ -90,6 +90,41 @@ html, body {
 }
 .sample-vibe { font-size: 9px; color: rgba(255,255,255,0.22); letter-spacing: 0.06em; }
 
+/* SECRET TRACKS */
+.secret-divider {
+  margin: 16px 0 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 16px;
+}
+.secret-divider span {
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.18); white-space: nowrap; width: 100%; text-align: center;
+}
+#secret-tracks {
+  display: none;
+}
+#secret-tracks.revealed {
+  display: block;
+}
+.secret-btn {
+  background: rgba(255,255,255,0.025);
+  border-color: rgba(255,255,255,0.07) !important;
+}
+.secret-btn:hover { border-color: rgba(180,120,255,0.35) !important; background: rgba(180,120,255,0.05) !important; }
+.secret-btn .sample-glyph { color: rgba(180,120,255,0.6); opacity: 1; }
+.secret-btn .sample-name { color: rgba(200,160,255,0.6); }
+/* logo click hint dots */
+#logo-hint {
+  display: flex; gap: 4px; justify-content: center; margin-top: -48px; margin-bottom: 32px;
+  height: 6px; align-items: center;
+}
+.hint-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); transition: background 0.3s;
+}
+.hint-dot.lit { background: rgba(180,120,255,0.7); }
+
 /* ANALYSIS SCREEN */
 #analysis-screen { gap: 20px; }
 #analysis-label { font-size: 11px; letter-spacing: 0.25em; color: rgba(255,255,255,0.3); text-transform: uppercase; }
@@ -364,7 +399,12 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
 <!-- DROP SCREEN -->
 <div class="screen" id="drop-screen">
   <canvas id="home-canvas"></canvas>
-  <div class="logo">Funky Monkey Visualizer</div>
+  <div class="logo" id="logo-click-target" style="cursor:default;user-select:none;">Funky Monkey Visualizer</div>
+  <div id="logo-hint">
+    <div class="hint-dot" id="hd1"></div>
+    <div class="hint-dot" id="hd2"></div>
+    <div class="hint-dot" id="hd3"></div>
+  </div>
   <div id="drop-zone">
     <span class="drop-glyph">◎ ◈ ◉</span>
     <div class="drop-headline">Drop your audio file</div>
@@ -387,6 +427,29 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
         <span class="sample-glyph">◈</span>
         <span class="sample-name">Dark</span>
         <span class="sample-vibe">tense</span>
+      </div>
+    </div>
+    <!-- SECRET TRACKS (hidden by default) -->
+    <div id="secret-tracks">
+      <div class="secret-divider">
+        <span>✦ unlocked tracks ✦</span>
+      </div>
+      <div class="sample-tracks">
+        <div class="sample-btn secret-btn" data-src="samples/Tame Impala - Let it Happen.mp3" data-name="Tame Impala - Let it Happen.mp3">
+          <span class="sample-glyph">◌</span>
+          <span class="sample-name">Let It Happen</span>
+          <span class="sample-vibe">tame impala</span>
+        </div>
+        <div class="sample-btn secret-btn" data-src="samples/Good Goodbye - Hwasa.mp3" data-name="Good Goodbye - Hwasa.mp3">
+          <span class="sample-glyph">◍</span>
+          <span class="sample-name">Good Goodbye</span>
+          <span class="sample-vibe">hwasa</span>
+        </div>
+        <div class="sample-btn secret-btn" data-src="samples/About You - The 1975.mp3" data-name="About You - The 1975.mp3">
+          <span class="sample-glyph">◎</span>
+          <span class="sample-name">About You</span>
+          <span class="sample-vibe">the 1975</span>
+        </div>
       </div>
     </div>
   </div>
@@ -1760,6 +1823,33 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Escape' && document.fullscreenElement) document.exitFullscreen();
 });
+
+// ── SECRET TRACKS UNLOCK (triple-click logo) ──────────
+(function() {
+  let clicks = 0;
+  let timer = null;
+  const logo = document.getElementById('logo-click-target');
+  const dots = [document.getElementById('hd1'), document.getElementById('hd2'), document.getElementById('hd3')];
+
+  logo.addEventListener('click', () => {
+    clicks++;
+    if (clicks <= 3) dots[clicks - 1].classList.add('lit');
+    if (timer) clearTimeout(timer);
+
+    if (clicks >= 3) {
+      // Unlock!
+      document.getElementById('secret-tracks').classList.add('revealed');
+      clicks = 0;
+      dots.forEach(d => d.classList.remove('lit'));
+      return;
+    }
+
+    timer = setTimeout(() => {
+      clicks = 0;
+      dots.forEach(d => d.classList.remove('lit'));
+    }, 1200);
+  });
+})();
 
 // ── SAMPLE TRACKS ─────────────────────────────────────
 document.querySelectorAll('.sample-btn').forEach(btn => {
