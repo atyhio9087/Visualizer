@@ -1780,12 +1780,15 @@ document.addEventListener('keydown', e => {
 
 // ── SAMPLE TRACKS ─────────────────────────────────────
 document.querySelectorAll('.sample-btn').forEach(btn => {
+  // Store original name once at setup time — so it survives back-button navigation
+  const nameEl = btn.querySelector('.sample-name');
+  btn.dataset.origName = nameEl.textContent;
+
   btn.addEventListener('click', async e => {
     e.stopPropagation();
-    const src  = btn.dataset.src;
-    const name = btn.dataset.name;
-    const nameEl = btn.querySelector('.sample-name');
-    const origName = nameEl.textContent;
+    const src      = btn.dataset.src;
+    const name     = btn.dataset.name;
+    const origName = btn.dataset.origName;
     nameEl.textContent = 'Loading…';
     btn.style.pointerEvents = 'none';
     try {
@@ -1794,6 +1797,10 @@ document.querySelectorAll('.sample-btn').forEach(btn => {
       const blob = await res.blob();
       const file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
       homeAnimActive = false;
+      // ✅ Restore button state BEFORE handing off to player —
+      //    so hitting back always finds the button in its clean state.
+      nameEl.textContent = origName;
+      btn.style.pointerEvents = '';
       loadAndPlay(file);
     } catch (err) {
       console.error('Sample load failed:', err);
