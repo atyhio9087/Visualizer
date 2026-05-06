@@ -1111,7 +1111,8 @@ function drawLayers() {
 
   for (let i = 0; i < LAYER_DEFS.length; i++) {
     const raw = getLayerAmp(LAYER_DEFS[i].lo, LAYER_DEFS[i].hi);
-    layerAmp[i] += (raw - layerAmp[i]) * 0.18;
+    const smoothRate = 0.18 + (1 - layerAmp[i]) * 0.18;
+    layerAmp[i] += (raw - layerAmp[i]) * smoothRate;
   }
 
   const order = [...Array(LAYER_DEFS.length).keys()].sort((a, b) => layerAmp[b] - layerAmp[a]);
@@ -1124,12 +1125,12 @@ function drawLayers() {
     targetBright[li] = Math.min(1.0, b);
   });
   for (let i = 0; i < LAYER_DEFS.length; i++) {
-    layerBright[i] += (targetBright[i] - layerBright[i]) * 0.04;
+    layerBright[i] += (targetBright[i] - layerBright[i]) * 0.09;
   }
 
   LAYER_DEFS.forEach((def, li) => {
     const energy = layerAmp[li];
-    layerPhases[li] += 0.018 + energy * 0.10 * PALETTE.speedMult;
+    layerPhases[li] += Math.max(0.012, 0.008 + energy * 0.10 * PALETTE.speedMult);
 
     const cy = vizH * def.yFrac + UI_HEIGHT * 0.55;
     const laneH = vizH * 0.048;
@@ -1152,11 +1153,12 @@ function drawLayers() {
     for (let i = 0; i <= segments; i++) {
       const x  = waveX + (i / segments) * waveW;
       const xn = i / segments;
+      const idleAmp = 0.08 + energy * 0.92;
       const y  = cy
-        + Math.sin(xn * Math.PI * 5.0  + ph)         * energy * laneH * 1.4
-        + Math.sin(xn * Math.PI * 10.5 + ph * 1.6)   * energy * laneH * 0.35
-        + Math.sin(xn * Math.PI * 2.5  + t * 0.65)   * energy * laneH * 0.20
-        + Math.sin(xn * Math.PI * 20   + ph * 2.2)   * energy * laneH * 0.10;
+        + Math.sin(xn * Math.PI * 5.0  + ph)         * idleAmp * laneH * 1.4
+        + Math.sin(xn * Math.PI * 10.5 + ph * 1.6)   * idleAmp * laneH * 0.35
+        + Math.sin(xn * Math.PI * 2.5  + t * 0.65)   * idleAmp * laneH * 0.20
+        + Math.sin(xn * Math.PI * 20   + ph * 2.2)   * idleAmp * laneH * 0.10;
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.strokeStyle = `hsla(${hue},${sat}%,${lit}%,${alpha})`;
