@@ -289,6 +289,12 @@ html, body {
   font-size: clamp(11px, 3vw, 14px); color: rgba(255,255,255,0.75);
   letter-spacing: 0.08em; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 300;
 }
+#next-track-lbl {
+  font-size: 9px; color: rgba(255,255,255,0.22); letter-spacing: 0.08em;
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  margin-bottom: 5px; display: none;
+}
+#next-track-lbl.show { display: block; }
 #vibe-pill {
   font-size: clamp(9px, 2vw, 10px); letter-spacing: 0.18em; text-transform: uppercase;
   padding: 5px 11px; border-radius: 2px; border: 1px solid; white-space: nowrap;
@@ -314,23 +320,9 @@ html, body {
 .m-btn:hover { color: rgba(255,255,255,0.65); }
 .m-btn.active { color: #fff; background: rgba(255,255,255,0.1); }
 
-/* REC INDICATOR */
-#rec-dot {
-  position: fixed; top: max(16px, env(safe-area-inset-top, 16px)); right: 16px;
-  font-size: 9px; letter-spacing: 0.15em; color: #ff4444;
-  display: none; align-items: center; gap: 6px;
-  z-index: 10; text-transform: uppercase;
-}
-#rec-dot::before {
-  content: ''; width: 6px; height: 6px; border-radius: 50%; background: #ff4444;
-  animation: blink 1s ease-in-out infinite;
-}
-#rec-dot.show { display: flex; }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-
 /* TWEAKPANE */
 #tweak-toggle {
-  position: fixed; bottom: clamp(90px, 18vw, 120px); left: 16px; z-index: 12;
+  position: fixed; top: max(16px, env(safe-area-inset-top, 16px)); left: 16px; z-index: 12;
   width: 32px; height: 32px; border-radius: 2px;
   background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2);
   color: rgba(255,255,255,0.6); font-size: 14px; cursor: pointer;
@@ -341,17 +333,13 @@ html, body {
 #tweak-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
 #tweak-toggle.hidden { opacity: 0; pointer-events: none; }
 #tweak-panel {
-  position: fixed; left: 56px; bottom: 100px;
-  width: min(260px, calc(100vw - 72px));
+  position: fixed; left: 16px; top: 56px;
+  width: min(260px, calc(100vw - 32px));
   background: rgba(8,8,8,0.92);
   border: 1px solid rgba(255,255,255,0.1); border-radius: 3px;
   padding: 14px 16px 10px; z-index: 12;
-  max-height: calc(100vh - 200px); overflow-y: auto;
+  max-height: calc(100vh - 120px); overflow-y: auto;
   transition: opacity 0.6s;
-  /* On small screens, keep it fully in view */
-}
-@media (max-width: 380px) {
-  #tweak-panel { left: 8px; width: calc(100vw - 16px); }
 }
 #tweak-panel.hidden { opacity: 0; pointer-events: none; }
 .tp-title {
@@ -381,60 +369,140 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 }
 .tp-reset:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
 
-/* SPEED CONTROL */
-#speed-panel {
-  position: fixed; bottom: clamp(90px, 18vw, 120px); right: 16px;
-  z-index: 10; display: flex; flex-direction: column; gap: 6px;
-  align-items: flex-end; transition: opacity 0.6s;
+/* ── QUEUE PANEL ─────────────────────────────────────── */
+#queue-toggle {
+  position: fixed; bottom: clamp(90px, 18vw, 120px); right: 16px; z-index: 12;
+  width: 32px; height: 32px; border-radius: 2px;
+  background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.6); font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.2s, border-color 0.2s, opacity 0.6s;
+  -webkit-tap-highlight-color: transparent;
+  letter-spacing: 0.06em;
+  font-family: 'IBM Plex Mono', monospace;
 }
-#speed-panel.hidden { opacity: 0; pointer-events: none; }
-#speed-label {
-  font-size: 9px; letter-spacing: 0.18em; color: rgba(255,255,255,0.3);
-  text-transform: uppercase; text-align: right;
+#queue-toggle:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+#queue-toggle.hidden { opacity: 0; pointer-events: none; }
+#queue-toggle.has-queue { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.9); }
+
+/* repeat button in transport */
+#repeat-btn { width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px); font-size: 11px; }
+#repeat-btn.active { border-color: rgba(180,120,255,0.7); color: rgba(180,120,255,0.9); }
+#repeat-btn.active-one { border-color: rgba(255,180,80,0.7); color: rgba(255,180,80,0.9); }
+#queue-btn-transport.has-queue { color: rgba(255,255,255,0.85); }
+
+#queue-panel {
+  position: fixed; right: 0; top: 0; bottom: 0;
+  width: min(320px, 100vw);
+  background: rgba(6,6,6,0.97);
+  border-left: 1px solid rgba(255,255,255,0.08);
+  z-index: 25;
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
 }
-#speed-val {
-  font-size: 9px; letter-spacing: 0.08em; color: rgba(255,255,255,0.5);
-  text-align: right; min-width: 28px;
+#queue-panel.open { transform: translateX(0); }
+
+#queue-header {
+  padding: 20px 18px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
 }
-#speed-wrap { display: flex; align-items: center; gap: 8px; }
-input[type=range]#speed-slider {
-  -webkit-appearance: none; appearance: none;
-  width: clamp(60px, 14vw, 90px); height: 2px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 1px; outline: none; cursor: pointer;
+#queue-title {
+  font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+  color: rgba(255,255,255,0.4); flex: 1;
 }
-input[type=range]#speed-slider::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 12px; height: 12px;
-  border-radius: 50%; background: rgba(255,255,255,0.75);
-  border: none; cursor: pointer;
+#queue-count {
+  font-size: 9px; color: rgba(255,255,255,0.2); letter-spacing: 0.08em;
+}
+#queue-shuffle-btn, #queue-close-btn {
+  background: none; border: 1px solid rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.4); font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; cursor: pointer; border-radius: 2px;
+  padding: 5px 9px; transition: all 0.15s; letter-spacing: 0.06em;
+  -webkit-tap-highlight-color: transparent;
+}
+#queue-shuffle-btn:hover, #queue-close-btn:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
+#queue-shuffle-btn.active { color: rgba(180,120,255,0.9); border-color: rgba(180,120,255,0.4); }
+#queue-close-btn { font-size: 12px; padding: 4px 8px; }
+
+#queue-list {
+  flex: 1; overflow-y: auto; padding: 8px 0;
+  overscroll-behavior: contain;
+}
+#queue-list::-webkit-scrollbar { width: 2px; }
+#queue-list::-webkit-scrollbar-track { background: transparent; }
+#queue-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 1px; }
+
+.queue-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px;
+  cursor: pointer; position: relative;
+  transition: background 0.12s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.queue-item:hover { background: rgba(255,255,255,0.04); }
+.queue-item.active { background: rgba(255,255,255,0.07); }
+.queue-item.dragging { opacity: 0.4; background: rgba(255,255,255,0.02); }
+.queue-item.drag-over { border-top: 1px solid rgba(255,255,255,0.25); }
+
+.queue-drag-handle {
+  color: rgba(255,255,255,0.15); font-size: 11px; cursor: grab;
+  flex-shrink: 0; width: 12px; text-align: center;
+  letter-spacing: -0.05em;
+}
+.queue-drag-handle:active { cursor: grabbing; }
+
+.queue-item-info { flex: 1; min-width: 0; }
+.queue-item-name {
+  font-size: 10px; letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.65);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 400;
+}
+.queue-item.active .queue-item-name { color: rgba(255,255,255,0.92); }
+.queue-item-num {
+  font-size: 9px; color: rgba(255,255,255,0.18); letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+.queue-item.active .queue-item-num { color: rgba(180,120,255,0.6); }
+.queue-now-playing {
+  font-size: 8px; color: rgba(180,120,255,0.7); letter-spacing: 0.1em;
+  flex-shrink: 0;
 }
 
-#dl-modal {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.8);
-  display: none; align-items: center; justify-content: center; z-index: 30;
+.queue-item-remove {
+  background: none; border: none; color: rgba(255,255,255,0.15);
+  font-size: 12px; cursor: pointer; padding: 0 2px; line-height: 1;
+  flex-shrink: 0; transition: color 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
-#dl-modal.show { display: flex; }
-#dl-box {
-  background: #0d0d0d; border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 4px; padding: 36px 40px; min-width: min(320px, 88vw); text-align: center;
+.queue-item-remove:hover { color: rgba(255,80,80,0.7); }
+
+#queue-footer {
+  padding: 12px 18px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  display: flex; gap: 8px; flex-shrink: 0;
 }
-#dl-box h3 { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 28px; font-weight: 300; }
-.dl-opt {
-  display: block; width: 100%; background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.75);
-  font-family: 'IBM Plex Mono', monospace; font-size: 11px;
-  letter-spacing: 0.08em; text-transform: uppercase;
-  padding: 13px 20px; cursor: pointer; border-radius: 2px;
-  margin-bottom: 10px; transition: background 0.2s, border-color 0.2s;
+#queue-add-btn, #queue-clear-btn {
+  flex: 1; background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.4); font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 9px; cursor: pointer; border-radius: 2px; transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
-.dl-opt:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); }
-#dl-cancel {
-  margin-top: 8px; background: none; border: none;
-  color: rgba(255,255,255,0.25); font-family: inherit; font-size: 10px;
-  letter-spacing: 0.1em; cursor: pointer; padding: 8px;
+#queue-add-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+#queue-clear-btn:hover { background: rgba(255,50,50,0.08); border-color: rgba(255,80,80,0.3); color: rgba(255,100,100,0.7); }
+
+#queue-file-input { display: none; }
+
+/* skip buttons in transport */
+#prev-btn, #next-btn {
+  width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px);
 }
-#dl-cancel:hover { color: rgba(255,255,255,0.5); }
-#dl-progress { margin-top: 16px; font-size: 11px; color: rgba(255,255,255,0.4); display: none; }
+
 </style>
 </head>
 <body>
@@ -453,8 +521,8 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
   </div>
   <div id="drop-zone">
     <span class="drop-glyph">◎ ◈ ◉</span>
-    <div class="drop-headline">Drop your audio file</div>
-    <div class="drop-sub">MP3 · WAV · FLAC · OGG · M4A<br>Sentiment analysis included</div>
+    <div class="drop-headline">Drop audio files here</div>
+    <div class="drop-sub">MP3 · WAV · FLAC · OGG · M4A — single or multiple<br>Sentiment analysis included</div>
     <!-- Mobile tap-to-browse button -->
     <button class="mobile-browse-btn" id="mobile-browse-btn">Browse files</button>
     <div class="sample-divider">
@@ -501,7 +569,7 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
       </div>
     </div>
   </div>
-  <input type="file" id="file-input" accept="audio/*">
+  <input type="file" id="file-input" accept="audio/*" multiple>
 </div>
 
 <!-- ANALYSIS SCREEN -->
@@ -518,18 +586,18 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
   <button class="m-btn" data-mode="warp">Warp</button>
 </div>
 
-<!-- REC INDICATOR -->
-<div id="rec-dot">Rec</div>
-
 <!-- UI -->
 <div id="ui" class="hidden">
+  <div id="next-track-lbl"></div>
   <div id="meta-row">
     <div id="song-lbl">—</div>
     <div id="vibe-pill">—</div>
   </div>
   <div id="transport">
     <button class="t-btn" id="back-btn" title="New file">←</button>
+    <button class="t-btn icon-btn" id="prev-btn" title="Previous">⏮</button>
     <button class="t-btn" id="play-btn">▶</button>
+    <button class="t-btn icon-btn" id="next-btn" title="Next">⏭</button>
     <div id="progress-wrap">
       <div id="progress-track">
         <div id="progress-fill">
@@ -544,17 +612,9 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
         <div id="vol-track"><div id="vol-fill" style="width:80%"><div id="vol-handle"></div></div></div>
       </div>
     </div>
+    <button class="t-btn icon-btn" id="repeat-btn" title="Repeat (off)">⇌</button>
+    <button class="t-btn icon-btn" id="queue-btn-transport" title="Queue (Q)">≡</button>
     <button class="t-btn icon-btn" id="fs-btn" title="Fullscreen">⛶</button>
-    <button class="t-btn icon-btn" id="dl-btn" title="Download video">⬇</button>
-  </div>
-</div>
-
-<!-- SPEED PANEL -->
-<div id="speed-panel" class="hidden">
-  <div id="speed-label">Flow Speed</div>
-  <div id="speed-wrap">
-    <input type="range" id="speed-slider" min="1" max="10" step="0.5" value="4">
-    <div id="speed-val">4</div>
   </div>
 </div>
 
@@ -562,16 +622,21 @@ input[type=range]#speed-slider::-webkit-slider-thumb {
 <div id="tweak-panel" class="hidden"></div>
 <button id="tweak-toggle" class="hidden" title="Parameters (P)">⚙</button>
 
-<!-- DOWNLOAD MODAL -->
-<div id="dl-modal">
-  <div id="dl-box">
-    <h3>Export visualization</h3>
-    <button class="dl-opt" id="dl-video-only">Video only (no audio)</button>
-    <button class="dl-opt" id="dl-video-audio">Video + audio</button>
-    <div id="dl-progress"></div>
-    <button id="dl-cancel">Cancel</button>
+<!-- QUEUE PANEL -->
+<div id="queue-panel">
+  <div id="queue-header">
+    <div id="queue-title">Queue</div>
+    <div id="queue-count">0 tracks</div>
+    <button id="queue-shuffle-btn" title="Shuffle">⇄</button>
+    <button id="queue-close-btn" title="Close">✕</button>
+  </div>
+  <div id="queue-list"></div>
+  <div id="queue-footer">
+    <button id="queue-add-btn">+ Add tracks</button>
+    <button id="queue-clear-btn">Clear</button>
   </div>
 </div>
+<input type="file" id="queue-file-input" accept="audio/*" multiple>
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -591,6 +656,14 @@ let startTime = 0, pauseOffset = 0, isPlaying = false;
 let animFrame;
 let currentMode = 'flowfield';
 let currentFile = null;
+
+// ── QUEUE STATE ────────────────────────────────────────
+let queue = [];           // array of File objects
+let queueIndex = -1;      // currently playing index
+let shuffleMode = false;
+let shuffleOrder = [];    // shuffled indices
+// repeatMode: 'none' | 'one' | 'all'
+let repeatMode = 'none';
 
 // Vibe palette — will be set after sentiment analysis
 let PALETTE = {
@@ -912,7 +985,7 @@ function buildPanel() {
   panel.innerHTML = '';
   const title = document.createElement('div');
   title.className = 'tp-title';
-  title.textContent = 'Flow Parameters';
+  title.textContent = 'Viz Parameters';
   panel.appendChild(title);
   const defs = [
     { key:'lenScale',  label:'Bar Length',  min:0.1,  max:2.0, step:0.05, fmt:v=>v.toFixed(2) },
@@ -987,16 +1060,9 @@ function rebuildGrid() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  SPEED CONTROL
+//  SPEED CONTROL (now only via tweakpane slider)
 // ═══════════════════════════════════════════════════════
 let FLOW_SPEED = 4.0;
-const speedSlider = document.getElementById('speed-slider');
-const speedVal    = document.getElementById('speed-val');
-speedSlider.addEventListener('input', () => {
-  FLOW_SPEED = parseFloat(speedSlider.value);
-  P.speed = FLOW_SPEED;
-  speedVal.textContent = FLOW_SPEED;
-});
 
 // ═══════════════════════════════════════════════════════
 //  VIZ 1: FLOW FIELD
@@ -1387,6 +1453,197 @@ async function estimateEnergyProfile(buffer) {
 }
 
 // ═══════════════════════════════════════════════════════
+//  QUEUE MANAGEMENT
+// ═══════════════════════════════════════════════════════
+function generateShuffleOrder() {
+  shuffleOrder = [...Array(queue.length).keys()];
+  // Fisher-Yates, keep current track first if playing
+  for (let i = shuffleOrder.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffleOrder[i], shuffleOrder[j]] = [shuffleOrder[j], shuffleOrder[i]];
+  }
+  // Move current index to front of shuffleOrder
+  if (queueIndex >= 0) {
+    const pos = shuffleOrder.indexOf(queueIndex);
+    if (pos > 0) { shuffleOrder.splice(pos, 1); shuffleOrder.unshift(queueIndex); }
+  }
+}
+
+function getNextIndex() {
+  if (queue.length === 0) return -1;
+  if (repeatMode === 'one') return queueIndex; // repeat same
+  if (shuffleMode) {
+    const pos = shuffleOrder.indexOf(queueIndex);
+    const next = pos + 1;
+    if (next < shuffleOrder.length) return shuffleOrder[next];
+    return repeatMode === 'all' ? shuffleOrder[0] : -1;
+  }
+  const next = queueIndex + 1;
+  if (next < queue.length) return next;
+  return repeatMode === 'all' ? 0 : -1;
+}
+
+function getPrevIndex() {
+  if (queue.length === 0) return -1;
+  if (shuffleMode) {
+    const pos = shuffleOrder.indexOf(queueIndex);
+    return pos > 0 ? shuffleOrder[pos - 1] : -1;
+  }
+  return queueIndex > 0 ? queueIndex - 1 : -1;
+}
+
+function addFilesToQueue(files) {
+  const arr = Array.from(files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|ogg|flac|aac|m4a|opus)$/i));
+  if (arr.length === 0) return;
+  queue.push(...arr);
+  if (shuffleMode) generateShuffleOrder();
+  renderQueuePanel();
+}
+
+function removeFromQueue(idx) {
+  if (idx === queueIndex) return; // don't remove currently playing
+  queue.splice(idx, 1);
+  if (idx < queueIndex) queueIndex--;
+  if (shuffleMode) generateShuffleOrder();
+  renderQueuePanel();
+}
+
+function moveQueueItem(fromIdx, toIdx) {
+  if (fromIdx === toIdx) return;
+  const [item] = queue.splice(fromIdx, 1);
+  queue.splice(toIdx, 0, item);
+  // Adjust queueIndex
+  if (fromIdx === queueIndex) queueIndex = toIdx;
+  else if (fromIdx < queueIndex && toIdx >= queueIndex) queueIndex--;
+  else if (fromIdx > queueIndex && toIdx <= queueIndex) queueIndex++;
+  if (shuffleMode) generateShuffleOrder();
+  renderQueuePanel();
+}
+
+function playQueueIndex(idx) {
+  if (idx < 0 || idx >= queue.length) return;
+  queueIndex = idx;
+  loadAndPlay(queue[idx]);
+}
+
+function playNext() {
+  const next = getNextIndex();
+  if (next >= 0) playQueueIndex(next);
+}
+
+function playPrev() {
+  // If >3s into track, restart; otherwise go to prev
+  const elapsed = isPlaying
+    ? Math.min(audioCtx.currentTime - startTime, audioBuffer?.duration || 0)
+    : pauseOffset;
+  if (elapsed > 3 && audioBuffer) {
+    playFrom(0);
+    return;
+  }
+  const prev = getPrevIndex();
+  if (prev >= 0) playQueueIndex(prev);
+}
+
+let queuePanelOpen = false;
+function toggleQueuePanel() {
+  queuePanelOpen = !queuePanelOpen;
+  document.getElementById('queue-panel').classList.toggle('open', queuePanelOpen);
+  document.getElementById('queue-btn-transport')?.classList.toggle('active', queuePanelOpen);
+}
+
+function renderQueuePanel() {
+  const list = document.getElementById('queue-list');
+  const count = document.getElementById('queue-count');
+  count.textContent = `${queue.length} track${queue.length !== 1 ? 's' : ''}`;
+  
+  // Highlight queue transport button when queue has items
+  const qBtn = document.getElementById('queue-btn-transport');
+  if (qBtn) qBtn.classList.toggle('has-queue', queue.length > 0);
+
+  // Update next track label
+  const nextIdx = getNextIndex();
+  const nextLbl = document.getElementById('next-track-lbl');
+  if (nextLbl) {
+    if (nextIdx >= 0 && queue[nextIdx]) {
+      const nextName = queue[nextIdx].name.replace(/\.[^.]+$/, '');
+      nextLbl.textContent = `next → ${nextName}`;
+      nextLbl.classList.add('show');
+    } else {
+      nextLbl.classList.remove('show');
+    }
+  }
+
+  list.innerHTML = '';
+  queue.forEach((file, idx) => {
+    const item = document.createElement('div');
+    item.className = 'queue-item' + (idx === queueIndex ? ' active' : '');
+    item.dataset.idx = idx;
+    item.draggable = true;
+
+    const nameClean = file.name.replace(/\.[^.]+$/, '');
+
+    item.innerHTML = `
+      <div class="queue-drag-handle" title="Drag to reorder">⠿</div>
+      <div class="queue-item-info">
+        <div class="queue-item-name" title="${file.name}">${nameClean}</div>
+        <div class="queue-item-num">${idx === queueIndex ? '▶ now playing' : `#${idx + 1}`}</div>
+      </div>
+      ${idx === queueIndex ? '<div class="queue-now-playing">●</div>' : ''}
+      <button class="queue-item-remove" data-idx="${idx}" title="Remove">×</button>
+    `;
+
+    // Click to play
+    item.addEventListener('click', e => {
+      if (e.target.classList.contains('queue-item-remove')) return;
+      if (e.target.classList.contains('queue-drag-handle')) return;
+      playQueueIndex(idx);
+    });
+
+    // Remove button
+    item.querySelector('.queue-item-remove').addEventListener('click', e => {
+      e.stopPropagation();
+      removeFromQueue(idx);
+    });
+
+    // Drag-to-reorder
+    let dragSrc = null;
+    item.addEventListener('dragstart', e => {
+      dragSrc = idx;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', idx);
+    });
+    item.addEventListener('dragend', () => item.classList.remove('dragging'));
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('drag-over'));
+      item.classList.add('drag-over');
+    });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      const from = parseInt(e.dataTransfer.getData('text/plain'));
+      const to = idx;
+      if (!isNaN(from) && from !== to) moveQueueItem(from, to);
+    });
+
+    // Touch drag (mobile)
+    let touchDragFrom = -1;
+    item.querySelector('.queue-drag-handle').addEventListener('touchstart', e => {
+      touchDragFrom = idx;
+    }, { passive: true });
+
+    list.appendChild(item);
+  });
+
+  // Scroll active item into view
+  const activeEl = list.querySelector('.queue-item.active');
+  if (activeEl) activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// ═══════════════════════════════════════════════════════
 //  LOAD & PLAY
 // ═══════════════════════════════════════════════════════
 async function loadAndPlay(file) {
@@ -1432,11 +1689,11 @@ async function loadAndPlay(file) {
   initAudio();
   playFrom(0);
   if (!animFrame) render();
-  if (currentMode === 'flowfield') {
-    document.getElementById('speed-panel').classList.remove('hidden');
+  if (currentMode === 'layers') {
     document.getElementById('tweak-toggle').classList.remove('hidden');
   }
   buildPanel();
+  renderQueuePanel();
 }
 
 // ── PLAY STATE ─────────────────────────────────────────
@@ -1465,6 +1722,16 @@ function playFrom(offset) {
       isPlaying = false;
       pauseOffset = 0;
       setPlayBtn(false);
+      // Repeat one: just restart from beginning, no re-decode
+      if (repeatMode === 'one') {
+        setTimeout(() => playFrom(0), 200);
+        return;
+      }
+      // Advance queue (getNextIndex handles repeat-all wraparound)
+      const next = getNextIndex();
+      if (next >= 0) {
+        setTimeout(() => playQueueIndex(next), 300);
+      }
     }
   };
 }
@@ -1592,55 +1859,11 @@ let isVolScrubbing = false;
   setVolume(0.8);
 })();
 
-let mediaRecorder = null, recordedChunks = [];
-
-async function startRecording(withAudio) {
-  recordedChunks = [];
-  const stream = canvas.captureStream(60);
-  if (withAudio && audioCtx) {
-    const dest = audioCtx.createMediaStreamDestination();
-    gainNode.connect(dest);
-    dest.stream.getAudioTracks().forEach(tk => stream.addTrack(tk));
-  }
-  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm';
-  mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_000_000 });
-  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
-  mediaRecorder.onstop = () => {
-    const blob = new Blob(recordedChunks, { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const fname = (document.getElementById('song-lbl').textContent || 'visualization') + '_vis.webm';
-    a.href = url; a.download = fname; a.click();
-    URL.revokeObjectURL(url);
-    document.getElementById('rec-dot').classList.remove('show');
-    document.getElementById('dl-progress').textContent = 'Download complete.';
-    setTimeout(() => { document.getElementById('dl-modal').classList.remove('show'); }, 1500);
-  };
-  mediaRecorder.start(100);
-  document.getElementById('rec-dot').classList.add('show');
-  document.getElementById('dl-modal').classList.remove('show');
-  document.getElementById('dl-progress').style.display = 'block';
-  document.getElementById('dl-progress').textContent = 'Recording… click ⏹ to stop & save';
-  document.getElementById('dl-btn').textContent = '⏹';
-  document.getElementById('dl-btn').title = 'Stop recording';
-  isRecording = true;
-}
-
-let isRecording = false;
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    mediaRecorder.stop();
-    isRecording = false;
-    document.getElementById('dl-btn').textContent = '⬇';
-    document.getElementById('dl-btn').title = 'Download video';
-  }
-}
-
 // ═══════════════════════════════════════════════════════
 //  UI AUTO-HIDE
 // ═══════════════════════════════════════════════════════
 let hideTimer;
-const UI_ELEMENTS = ['ui', 'mode-bar', 'speed-panel', 'tweak-toggle'];
+const UI_ELEMENTS = ['ui', 'mode-bar', 'tweak-toggle'];
 
 function showUI() {
   UI_ELEMENTS.forEach(id => document.getElementById(id)?.classList.remove('hidden'));
@@ -1648,7 +1871,7 @@ function showUI() {
   if (audioBuffer) {
     hideTimer = setTimeout(() => {
       if (isPlaying) {
-        ['ui', 'mode-bar', 'speed-panel', 'tweak-toggle'].forEach(id =>
+        ['ui', 'mode-bar', 'tweak-toggle'].forEach(id =>
           document.getElementById(id)?.classList.add('hidden'));
         if (!panelOpen) document.getElementById('tweak-panel')?.classList.add('hidden');
       }
@@ -1681,7 +1904,15 @@ document.getElementById('mobile-browse-btn').addEventListener('click', (e) => {
 });
 
 document.getElementById('file-input').addEventListener('change', e => {
-  if (e.target.files[0]) { homeAnimActive = false; loadAndPlay(e.target.files[0]); }
+  const files = Array.from(e.target.files);
+  if (files.length === 0) return;
+  homeAnimActive = false;
+  queue = files;
+  queueIndex = 0;
+  shuffleMode = false;
+  document.getElementById('queue-shuffle-btn').classList.remove('active');
+  shuffleOrder = [];
+  loadAndPlay(queue[0]);
 });
 
 // Drag and drop (desktop only)
@@ -1690,11 +1921,57 @@ document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.get
 document.addEventListener('drop', e => {
   e.preventDefault();
   document.getElementById('drop-zone').classList.remove('drag');
-  const f = e.dataTransfer.files[0];
-  if (f && f.type.startsWith('audio/')) { homeAnimActive = false; loadAndPlay(f); }
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|ogg|flac|aac|m4a|opus)$/i));
+  if (files.length === 0) return;
+  homeAnimActive = false;
+  queue = files;
+  queueIndex = 0;
+  shuffleMode = false;
+  shuffleOrder = [];
+  loadAndPlay(queue[0]);
 });
 
 document.getElementById('play-btn').addEventListener('click', togglePlay);
+document.getElementById('prev-btn').addEventListener('click', playPrev);
+document.getElementById('next-btn').addEventListener('click', playNext);
+
+// Queue panel controls
+document.getElementById('queue-btn-transport').addEventListener('click', toggleQueuePanel);
+document.getElementById('queue-close-btn').addEventListener('click', () => {
+  queuePanelOpen = false;
+  document.getElementById('queue-panel').classList.remove('open');
+  document.getElementById('queue-btn-transport')?.classList.remove('active');
+});
+document.getElementById('queue-shuffle-btn').addEventListener('click', () => {
+  shuffleMode = !shuffleMode;
+  document.getElementById('queue-shuffle-btn').classList.toggle('active', shuffleMode);
+  if (shuffleMode) generateShuffleOrder();
+  else shuffleOrder = [];
+});
+document.getElementById('queue-add-btn').addEventListener('click', () => {
+  document.getElementById('queue-file-input').click();
+});
+document.getElementById('queue-file-input').addEventListener('change', e => {
+  addFilesToQueue(e.target.files);
+  e.target.value = '';
+  // If nothing playing yet, start from first item
+  if (queueIndex < 0 && queue.length > 0) {
+    queueIndex = 0;
+    loadAndPlay(queue[0]);
+  }
+});
+document.getElementById('queue-clear-btn').addEventListener('click', () => {
+  // Keep currently playing, clear rest
+  if (queueIndex >= 0 && queue[queueIndex]) {
+    const cur = queue[queueIndex];
+    queue = [cur];
+    queueIndex = 0;
+  } else {
+    queue = []; queueIndex = -1;
+  }
+  shuffleOrder = [];
+  renderQueuePanel();
+});
 
 document.getElementById('back-btn').addEventListener('click', () => {
   if (source) { try { source.stop(); } catch(e){} }
@@ -1707,6 +1984,10 @@ document.getElementById('back-btn').addEventListener('click', () => {
   document.getElementById('analysis-screen').classList.add('off');
   document.getElementById('drop-screen').classList.remove('off');
   document.getElementById('file-input').value = '';
+  document.getElementById('queue-panel').classList.remove('open');
+  queuePanelOpen = false;
+  // Clear queue state
+  queue = []; queueIndex = -1; shuffleOrder = [];
   hueShift = 0; t = 0; peakFlash = 0;
   homeAnimActive = true;
   if (!homeAnimRunning) startHomeAnim();
@@ -1720,15 +2001,18 @@ document.addEventListener('fullscreenchange', () => {
   document.getElementById('fs-btn').textContent = document.fullscreenElement ? '✕' : '⛶';
 });
 
-document.getElementById('dl-btn').addEventListener('click', () => {
-  if (isRecording) { stopRecording(); return; }
-  document.getElementById('dl-modal').classList.add('show');
-  document.getElementById('dl-progress').style.display = 'none';
-  document.getElementById('dl-progress').textContent = '';
+// Repeat button: cycles none → one → all
+document.getElementById('repeat-btn').addEventListener('click', () => {
+  if (repeatMode === 'none') repeatMode = 'one';
+  else if (repeatMode === 'one') repeatMode = 'all';
+  else repeatMode = 'none';
+  const btn = document.getElementById('repeat-btn');
+  btn.classList.remove('active', 'active-one');
+  if (repeatMode === 'one') { btn.textContent = '⇂'; btn.title = 'Repeat: one'; btn.classList.add('active-one'); }
+  else if (repeatMode === 'all') { btn.textContent = '⇌'; btn.title = 'Repeat: all'; btn.classList.add('active'); }
+  else { btn.textContent = '⇌'; btn.title = 'Repeat: off'; }
+  renderQueuePanel();
 });
-document.getElementById('dl-video-only').addEventListener('click', () => startRecording(false));
-document.getElementById('dl-video-audio').addEventListener('click', () => startRecording(true));
-document.getElementById('dl-cancel').addEventListener('click', () => document.getElementById('dl-modal').classList.remove('show'));
 
 document.querySelectorAll('.m-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1738,10 +2022,9 @@ document.querySelectorAll('.m-btn').forEach(btn => {
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
     glowCtx.clearRect(0, 0, W, H);
     t = 0; hueShift = 0;
-    const isFlow = currentMode === 'flowfield';
-    document.getElementById('speed-panel').classList.toggle('hidden', !isFlow);
-    document.getElementById('tweak-toggle').classList.toggle('hidden', !isFlow);
-    if (!isFlow) { panelOpen = false; document.getElementById('tweak-panel').classList.add('hidden'); }
+    const isLayers = currentMode === 'layers';
+    document.getElementById('tweak-toggle').classList.toggle('hidden', !isLayers);
+    if (!isLayers) { panelOpen = false; document.getElementById('tweak-panel').classList.add('hidden'); }
   });
 });
 
@@ -1755,7 +2038,10 @@ document.addEventListener('keydown', e => {
   if (e.code === 'KeyF') document.querySelector('[data-mode="flowfield"]').click();
   if (e.code === 'KeyL') document.querySelector('[data-mode="layers"]').click();
   if (e.code === 'KeyW') document.querySelector('[data-mode="warp"]').click();
-  if (e.code === 'KeyP') {
+  if (e.code === 'ArrowRight' && e.shiftKey) { e.preventDefault(); playNext(); }
+  if (e.code === 'ArrowLeft' && e.shiftKey) { e.preventDefault(); playPrev(); }
+  if (e.code === 'KeyQ') toggleQueuePanel();
+  if (e.code === 'KeyP' && currentMode === 'layers') {
     panelOpen = !panelOpen;
     document.getElementById('tweak-panel').classList.toggle('hidden', !panelOpen);
     document.getElementById('tweak-toggle').classList.remove('hidden');
@@ -1803,6 +2089,11 @@ document.querySelectorAll('.sample-btn').forEach(btn => {
       //    so hitting back always finds the button in its clean state.
       nameEl.textContent = origName;
       btn.style.pointerEvents = '';
+      // Initialize queue with this single sample track
+      queue = [file];
+      queueIndex = 0;
+      shuffleMode = false;
+      shuffleOrder = [];
       loadAndPlay(file);
     } catch (err) {
       console.error('Sample load failed:', err);
