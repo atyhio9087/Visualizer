@@ -522,7 +522,7 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   <div id="drop-zone">
     <span class="drop-glyph">◎ ◈ ◉</span>
     <div class="drop-headline">Drop audio files here</div>
-    <div class="drop-sub">MP3 · WAV · FLAC · OGG · M4A — single or multiple<br>Sentiment analysis included</div>
+    <div class="drop-sub">MP3 · WAV · AIFF · FLAC · OGG · AAC · M4A · OPUS · WMA — single or multiple<br>Sentiment analysis included</div>
     <!-- Mobile tap-to-browse button -->
     <button class="mobile-browse-btn" id="mobile-browse-btn">Browse files</button>
     <div class="sample-divider">
@@ -569,7 +569,7 @@ input[type=range].tp-slider::-webkit-slider-thumb {
       </div>
     </div>
   </div>
-  <input type="file" id="file-input" accept="audio/*" multiple>
+  <input type="file" id="file-input" accept="audio/*,.wav,.wave,.aiff,.aif,.wma,.flac,.ogg,.opus,.webm,.m4a,.aac,.mp3,.mp4,.caf" multiple>
 </div>
 
 <!-- ANALYSIS SCREEN -->
@@ -636,7 +636,7 @@ input[type=range].tp-slider::-webkit-slider-thumb {
     <button id="queue-clear-btn">Clear</button>
   </div>
 </div>
-<input type="file" id="queue-file-input" accept="audio/*" multiple>
+<input type="file" id="queue-file-input" accept="audio/*,.wav,.wave,.aiff,.aif,.wma,.flac,.ogg,.opus,.webm,.m4a,.aac,.mp3,.mp4,.caf" multiple>
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -1493,7 +1493,7 @@ function getPrevIndex() {
 }
 
 function addFilesToQueue(files) {
-  const arr = Array.from(files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|ogg|flac|aac|m4a|opus)$/i));
+  const arr = Array.from(files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|wave|ogg|oga|flac|aac|m4a|mp4|aiff|aif|wma|opus|webm|caf|3gp|amr)$/i));
   if (arr.length === 0) return;
   queue.push(...arr);
   if (shuffleMode) generateShuffleOrder();
@@ -1659,7 +1659,7 @@ async function loadAndPlay(file) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
   }
   if (audioCtx.state === 'suspended') await audioCtx.resume();
-  if (source) { try { source.stop(); } catch(e){} }
+  if (source) { source.onended = null; try { source.stop(); } catch(e){} }
 
   const ab = await file.arrayBuffer();
   document.getElementById('analysis-status').textContent = 'Analyzing frequencies…';
@@ -1921,7 +1921,7 @@ document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.get
 document.addEventListener('drop', e => {
   e.preventDefault();
   document.getElementById('drop-zone').classList.remove('drag');
-  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|ogg|flac|aac|m4a|opus)$/i));
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|wave|ogg|oga|flac|aac|m4a|mp4|aiff|aif|wma|opus|webm|caf|3gp|amr)$/i));
   if (files.length === 0) return;
   homeAnimActive = false;
   queue = files;
