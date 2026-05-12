@@ -15,16 +15,13 @@ html, body {
   overflow: hidden;
   font-family: 'IBM Plex Mono', monospace;
   color: #fff;
-  /* Prevent iOS bounce/overscroll */
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
 }
 
-/* ── SCREENS ─────────────────────────────────────────── */
 .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; background: #000; transition: opacity 0.5s; }
 .screen.off { opacity: 0; pointer-events: none; }
 
-/* DROP SCREEN */
 #drop-screen { gap: 0; }
 #drop-screen .logo {
   font-size: clamp(14px, 3.5vw, 25px);
@@ -41,7 +38,6 @@ html, body {
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
   position: relative;
-  /* don't trigger file picker on mobile tap — handled in JS */
 }
 #drop-zone:hover, #drop-zone.drag { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.02); }
 #drop-zone::before {
@@ -58,7 +54,6 @@ html, body {
 .drop-headline { font-size: clamp(11px, 2.5vw, 13px); letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 10px; font-weight: 300; }
 .drop-sub { font-size: clamp(10px, 2vw, 11px); color: rgba(255,255,255,0.25); letter-spacing: 0.06em; line-height: 2; }
 
-/* Mobile: show a tap-to-browse button instead of "drop" instruction */
 .mobile-browse-btn {
   display: none;
   margin: 16px auto 0;
@@ -74,9 +69,34 @@ html, body {
 @media (hover: none) and (pointer: coarse) {
   .mobile-browse-btn { display: inline-block; }
   .drop-sub { display: none; }
-  /* Disable the whole drop-zone from acting as a click-to-browse on mobile */
   #drop-zone { cursor: default; }
 }
+
+/* ── MIC BUTTON on drop screen ── */
+.drop-divider {
+  margin: 20px 0 14px;
+  display: flex; align-items: center;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 18px;
+}
+.drop-divider span {
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.2); white-space: nowrap; width: 100%; text-align: center;
+}
+#live-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 2px; padding: 14px 20px;
+  cursor: pointer; color: rgba(255,255,255,0.55);
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+#live-btn:hover { border-color: rgba(180,120,255,0.5); color: rgba(200,160,255,0.9); background: rgba(180,120,255,0.06); }
+#live-btn:active { background: rgba(180,120,255,0.1); }
+.mic-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(180,120,255,0.5); flex-shrink: 0; }
 
 #home-canvas {
   position: absolute; inset: 0; width: 100%; height: 100%;
@@ -84,7 +104,6 @@ html, body {
 }
 #file-input { display: none; }
 
-/* SAMPLE TRACKS */
 .sample-divider {
   margin: 20px 0 14px;
   display: flex; align-items: center; gap: 12px;
@@ -111,7 +130,6 @@ html, body {
   cursor: pointer; display: flex; flex-direction: column;
   align-items: center; gap: 5px;
   transition: border-color 0.2s, background 0.2s;
-  /* Ensure tappable on mobile */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
@@ -124,7 +142,6 @@ html, body {
 }
 .sample-vibe { font-size: 9px; color: rgba(255,255,255,0.22); letter-spacing: 0.06em; }
 
-/* SECRET TRACKS */
 .secret-divider {
   margin: 14px 0 14px;
   display: flex; align-items: center; gap: 12px;
@@ -154,7 +171,6 @@ html, body {
 }
 .hint-dot.lit { background: rgba(180,120,255,0.7); }
 
-/* ANALYSIS SCREEN */
 #analysis-screen { gap: 20px; }
 #analysis-label { font-size: 11px; letter-spacing: 0.25em; color: rgba(255,255,255,0.3); text-transform: uppercase; }
 #analysis-status { font-size: 13px; color: rgba(255,255,255,0.6); letter-spacing: 0.06em; max-width: 360px; text-align: center; line-height: 1.8; }
@@ -171,8 +187,120 @@ html, body {
 }
 @keyframes scan { to { left: 100%; } }
 
-/* ── CANVAS ──────────────────────────────────────────── */
-#canvas {
+/* ── LIVE MODE SCREEN ── */
+#live-screen {
+  gap: 0;
+}
+#live-screen .live-header {
+  font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: rgba(255,255,255,0.25); margin-bottom: 32px; text-align: center;
+}
+
+/* pulsing mic ring */
+#mic-ring {
+  width: 80px; height: 80px; border-radius: 50%;
+  border: 1px solid rgba(180,120,255,0.3);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; margin-bottom: 28px;
+  transition: border-color 0.15s;
+}
+#mic-ring::before {
+  content: '';
+  position: absolute; inset: -8px;
+  border-radius: 50%; border: 1px solid rgba(180,120,255,0.1);
+  animation: mic-pulse 2s ease-in-out infinite;
+}
+#mic-ring::after {
+  content: '';
+  position: absolute; inset: -18px;
+  border-radius: 50%; border: 1px solid rgba(180,120,255,0.05);
+  animation: mic-pulse 2s ease-in-out infinite 0.4s;
+}
+@keyframes mic-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+#mic-ring.hot { border-color: rgba(180,120,255,0.9); }
+#mic-ring.hot::before { border-color: rgba(180,120,255,0.35); }
+#mic-ring.hot::after { border-color: rgba(180,120,255,0.15); }
+#mic-glyph { font-size: 28px; opacity: 0.6; user-select: none; }
+
+#live-vibe-pill {
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 2px; border: 1px solid rgba(180,120,255,0.3);
+  color: rgba(180,120,255,0.7); background: rgba(180,120,255,0.06);
+  margin-bottom: 24px; min-width: 80px; text-align: center;
+  transition: all 0.8s;
+}
+
+/* noise reduction slider */
+#nr-panel {
+  width: min(300px, 88vw);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 2px;
+  padding: 16px 20px; margin-bottom: 20px;
+}
+#nr-panel .nr-title {
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.22); margin-bottom: 12px;
+}
+#nr-row { display: flex; align-items: center; gap: 10px; }
+#nr-lbl { font-size: 9px; color: rgba(255,255,255,0.35); letter-spacing: 0.06em; width: 52px; }
+#nr-slider-wrap { flex: 1; position: relative; height: 20px; display: flex; align-items: center; cursor: pointer; }
+#nr-track { position: absolute; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.12); border-radius: 1px; pointer-events: none; }
+#nr-fill { height: 100%; border-radius: 1px; background: rgba(180,120,255,0.6); pointer-events: none; width: 30%; }
+#nr-handle {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(180,120,255,0.9); pointer-events: none; left: 30%;
+  margin-left: -5px;
+}
+#nr-val { font-size: 9px; color: rgba(255,255,255,0.4); width: 28px; text-align: right; }
+#nr-desc { font-size: 9px; color: rgba(255,255,255,0.18); letter-spacing: 0.04em; margin-top: 8px; line-height: 1.6; }
+
+/* live mode bottom controls */
+#live-controls {
+  display: flex; gap: 10px; align-items: center;
+}
+#live-stop-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.5); font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 10px 20px; border-radius: 2px; cursor: pointer;
+  transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+}
+#live-stop-btn:hover { border-color: rgba(255,100,100,0.5); color: rgba(255,120,120,0.8); background: rgba(255,50,50,0.05); }
+
+#live-mode-selector {
+  display: flex; gap: 2px;
+  background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 3px; padding: 3px;
+}
+.lm-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase;
+  background: none; border: none; color: rgba(255,255,255,0.3);
+  cursor: pointer; padding: 5px 10px; border-radius: 2px;
+  transition: color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.lm-btn:hover { color: rgba(255,255,255,0.65); }
+.lm-btn.active { color: #fff; background: rgba(255,255,255,0.1); }
+
+/* level meter bar */
+#level-bar {
+  width: min(300px, 88vw); height: 3px;
+  background: rgba(255,255,255,0.06); border-radius: 2px;
+  margin-bottom: 20px; overflow: hidden;
+}
+#level-fill {
+  height: 100%; width: 0%; border-radius: 2px;
+  background: rgba(180,120,255,0.7);
+  transition: width 0.05s linear;
+}
+
+canvas#canvas {
   position: fixed; top: 0; left: 0;
   width: 100%; height: 100%;
   display: block;
@@ -186,11 +314,9 @@ html, body {
   mix-blend-mode: screen;
 }
 
-/* ── UI OVERLAY ──────────────────────────────────────── */
 #ui {
   position: fixed; bottom: 0; left: 0; right: 0;
   padding: clamp(12px, 2vw, 20px) clamp(14px, 3vw, 32px) clamp(14px, 3vw, 24px);
-  /* extra bottom padding for iOS safe area */
   padding-bottom: max(clamp(14px, 3vw, 24px), env(safe-area-inset-bottom));
   background: linear-gradient(transparent, rgba(0,0,0,0.92));
   z-index: 10;
@@ -217,12 +343,11 @@ html, body {
 .icon-btn { width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px); font-size: 13px; }
 #back-btn { width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px); }
 
-/* YouTube-style progress bar */
 #progress-wrap {
   flex: 1; height: 24px;
   display: flex; align-items: center;
   cursor: pointer; position: relative; user-select: none;
-  touch-action: none; /* prevent scroll while scrubbing */
+  touch-action: none;
 }
 #progress-track {
   position: absolute; left: 0; right: 0; height: 3px;
@@ -250,7 +375,6 @@ html, body {
   min-width: clamp(72px, 15vw, 96px); text-align: right; letter-spacing: 0.04em;
 }
 
-/* Volume control — hide on mobile to save space */
 #vol-wrap {
   display: flex; align-items: center; gap: 7px; flex-shrink: 0;
 }
@@ -306,7 +430,6 @@ html, body {
   font-weight: 400;
 }
 
-/* MODE BAR */
 #mode-bar {
   position: fixed; top: max(16px, env(safe-area-inset-top, 16px)); left: 50%; transform: translateX(-50%);
   display: flex; gap: 2px; z-index: 10; transition: opacity 0.6s;
@@ -325,7 +448,6 @@ html, body {
 .m-btn:hover { color: rgba(255,255,255,0.65); }
 .m-btn.active { color: #fff; background: rgba(255,255,255,0.1); }
 
-/* TWEAKPANE */
 #tweak-toggle {
   position: fixed; top: max(16px, env(safe-area-inset-top, 16px)); left: 16px; z-index: 12;
   width: 32px; height: 32px; border-radius: 2px;
@@ -374,7 +496,6 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 }
 .tp-reset:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
 
-/* ── QUEUE PANEL ─────────────────────────────────────── */
 #queue-toggle {
   position: fixed; bottom: clamp(90px, 18vw, 120px); right: 16px; z-index: 12;
   width: 32px; height: 32px; border-radius: 2px;
@@ -390,7 +511,6 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 #queue-toggle.hidden { opacity: 0; pointer-events: none; }
 #queue-toggle.has-queue { border-color: rgba(255,255,255,0.4); color: rgba(255,255,255,0.9); }
 
-/* repeat button in transport */
 #repeat-btn { width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px); font-size: 11px; }
 #repeat-btn.active { border-color: rgba(180,120,255,0.7); color: rgba(180,120,255,0.9); }
 #repeat-btn.active-one { border-color: rgba(255,180,80,0.7); color: rgba(255,180,80,0.9); }
@@ -451,37 +571,26 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 .queue-item.active { background: rgba(255,255,255,0.07); }
 .queue-item.dragging { opacity: 0.4; background: rgba(255,255,255,0.02); }
 .queue-item.drag-over { border-top: 1px solid rgba(255,255,255,0.25); }
-
 .queue-drag-handle {
   color: rgba(255,255,255,0.15); font-size: 11px; cursor: grab;
-  flex-shrink: 0; width: 12px; text-align: center;
-  letter-spacing: -0.05em;
+  flex-shrink: 0; width: 12px; text-align: center; letter-spacing: -0.05em;
 }
 .queue-drag-handle:active { cursor: grabbing; }
-
 .queue-item-info { flex: 1; min-width: 0; }
 .queue-item-name {
-  font-size: 10px; letter-spacing: 0.06em;
-  color: rgba(255,255,255,0.65);
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-weight: 400;
+  font-size: 10px; letter-spacing: 0.06em; color: rgba(255,255,255,0.65);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 400;
 }
 .queue-item.active .queue-item-name { color: rgba(255,255,255,0.92); }
 .queue-item-num {
-  font-size: 9px; color: rgba(255,255,255,0.18); letter-spacing: 0.04em;
-  margin-top: 2px;
+  font-size: 9px; color: rgba(255,255,255,0.18); letter-spacing: 0.04em; margin-top: 2px;
 }
 .queue-item.active .queue-item-num { color: rgba(180,120,255,0.6); }
-.queue-now-playing {
-  font-size: 8px; color: rgba(180,120,255,0.7); letter-spacing: 0.1em;
-  flex-shrink: 0;
-}
-
+.queue-now-playing { font-size: 8px; color: rgba(180,120,255,0.7); letter-spacing: 0.1em; flex-shrink: 0; }
 .queue-item-remove {
   background: none; border: none; color: rgba(255,255,255,0.15);
   font-size: 12px; cursor: pointer; padding: 0 2px; line-height: 1;
-  flex-shrink: 0; transition: color 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0; transition: color 0.15s; -webkit-tap-highlight-color: transparent;
 }
 .queue-item-remove:hover { color: rgba(255,80,80,0.7); }
 
@@ -500,14 +609,9 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 }
 #queue-add-btn:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
 #queue-clear-btn:hover { background: rgba(255,50,50,0.08); border-color: rgba(255,80,80,0.3); color: rgba(255,100,100,0.7); }
-
 #queue-file-input { display: none; }
 
-/* skip buttons in transport */
-#prev-btn, #next-btn {
-  width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px);
-}
-
+#prev-btn, #next-btn { width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px); }
 </style>
 </head>
 <body>
@@ -528,8 +632,13 @@ input[type=range].tp-slider::-webkit-slider-thumb {
     <span class="drop-glyph">◎ ◈ ◉</span>
     <div class="drop-headline">Drop audio files here</div>
     <div class="drop-sub">MP3 · WAV · AIFF · FLAC · OGG · AAC · M4A · OPUS · WMA — single or multiple<br>Sentiment analysis included</div>
-    <!-- Mobile tap-to-browse button -->
     <button class="mobile-browse-btn" id="mobile-browse-btn">Browse files</button>
+    <div class="drop-divider"><span>or go live</span></div>
+    <button id="live-btn">
+      <span class="mic-dot"></span>
+      Use microphone
+      <span class="mic-dot"></span>
+    </button>
     <div class="sample-divider">
       <span>or try a sample</span>
     </div>
@@ -550,56 +659,35 @@ input[type=range].tp-slider::-webkit-slider-thumb {
         <span class="sample-vibe">tense</span>
       </div>
     </div>
-    <!-- SECRET TRACKS (hidden by default) -->
     <div id="secret-tracks">
-      <div class="secret-divider">
-        <span>✦ unlocked tracks ✦</span>
-      </div>
+      <div class="secret-divider"><span>✦ unlocked tracks ✦</span></div>
       <div class="sample-tracks grid-3">
         <div class="sample-btn secret-btn" data-src="samples/Tame Impala - Let it Happen.mp3" data-name="Tame Impala - Let it Happen.mp3">
-          <span class="sample-glyph">◌</span>
-          <span class="sample-name">Let It Happen</span>
-          <span class="sample-vibe">Tame Impala</span>
+          <span class="sample-glyph">◌</span><span class="sample-name">Let It Happen</span><span class="sample-vibe">Tame Impala</span>
         </div>
         <div class="sample-btn secret-btn" data-src="samples/Good Goodbye - Hwasa.mp3" data-name="Good Goodbye - Hwasa.mp3">
-          <span class="sample-glyph">◍</span>
-          <span class="sample-name">Good Goodbye</span>
-          <span class="sample-vibe">Hwasa</span>
+          <span class="sample-glyph">◍</span><span class="sample-name">Good Goodbye</span><span class="sample-vibe">Hwasa</span>
         </div>
         <div class="sample-btn secret-btn" data-src="samples/About You - The 1975.mp3" data-name="About You - The 1975.mp3">
-          <span class="sample-glyph">◎</span>
-          <span class="sample-name">About You</span>
-          <span class="sample-vibe">The 1975</span>
+          <span class="sample-glyph">◎</span><span class="sample-name">About You</span><span class="sample-vibe">The 1975</span>
         </div>
         <div class="sample-btn secret-btn" data-src="samples/Aawaz Do Humko -  Lata Mangeshkar and Udit Narayan.mp3" data-name="Aawaz Do Humko -  Lata Mangeshkar and Udit Narayan.mp3">
-          <span class="sample-glyph">◉</span>
-          <span class="sample-name">Aawaz Do Humko</span>
-          <span class="sample-vibe">Lata M· Udit N</span>
+          <span class="sample-glyph">◉</span><span class="sample-name">Aawaz Do Humko</span><span class="sample-vibe">Lata M· Udit N</span>
         </div>
         <div class="sample-btn secret-btn" data-src="samples/Bad Bunny - DtMF.mp3" data-name="Bad Bunny - DtMF.mp3">
-          <span class="sample-glyph">◐</span>
-          <span class="sample-name">DtMF</span>
-          <span class="sample-vibe">Bad Bunny</span>
+          <span class="sample-glyph">◐</span><span class="sample-name">DtMF</span><span class="sample-vibe">Bad Bunny</span>
         </div>
         <div class="sample-btn secret-btn" data-src="samples/Bleachers - Merry Christmas, Please Don't Call.mp3" data-name="Bleachers - Merry Christmas, Please Don't Call.mp3">
-          <span class="sample-glyph">◑</span>
-          <span class="sample-name">Merry Christmas, Please Don't Call</span>
-          <span class="sample-vibe">Bleachers</span>
+          <span class="sample-glyph">◑</span><span class="sample-name">Merry Christmas, Please Don't Call</span><span class="sample-vibe">Bleachers</span>
         </div>
         <div class="sample-btn secret-btn" data-src="samples/Kiss - I Was Made For Lovin' You.mp3" data-name="Kiss - I Was Made For Lovin' You.mp3">
-          <span class="sample-glyph">◒</span>
-          <span class="sample-name">I Was Made For Lovin' You</span>
-          <span class="sample-vibe">Kiss</span>
+          <span class="sample-glyph">◒</span><span class="sample-name">I Was Made For Lovin' You</span><span class="sample-vibe">Kiss</span>
         </div>
         <div class="sample-btn secret-btn" data-src="samples/Olivia Dean - Man I Need.mp3" data-name="Olivia Dean - Man I Need.mp3">
-          <span class="sample-glyph">◓</span>
-          <span class="sample-name">Man I Need</span>
-          <span class="sample-vibe">Olivia Dean</span>
+          <span class="sample-glyph">◓</span><span class="sample-name">Man I Need</span><span class="sample-vibe">Olivia Dean</span>
         </div>
         <div class="sample-btn secret-btn" data-src="samples/Moves Like Jagger - Maroon 5 featuring Christina Aguilera.mp3" data-name="Moves Like Jagger - Maroon 5 featuring Christina Aguilera.mp3">
-          <span class="sample-glyph">◔</span>
-          <span class="sample-name">Moves Like Jagger</span>
-          <span class="sample-vibe">Maroon 5 · Christina Aguilera</span>
+          <span class="sample-glyph">◔</span><span class="sample-name">Moves Like Jagger</span><span class="sample-vibe">Maroon 5 · Christina Aguilera</span>
         </div>
       </div>
     </div>
@@ -614,14 +702,44 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   <div id="analysis-status">Analyzing audio fingerprint…</div>
 </div>
 
-<!-- MODE BAR -->
+<!-- LIVE MODE SCREEN -->
+<div class="screen off" id="live-screen">
+  <div class="live-header">Live input · mic active</div>
+  <div id="mic-ring">
+    <span id="mic-glyph">◎</span>
+  </div>
+  <div id="live-vibe-pill">listening…</div>
+  <div id="level-bar"><div id="level-fill"></div></div>
+  <div id="nr-panel">
+    <div class="nr-title">Noise reduction</div>
+    <div id="nr-row">
+      <div id="nr-lbl">Amount</div>
+      <div id="nr-slider-wrap">
+        <div id="nr-track"><div id="nr-fill"></div></div>
+        <div id="nr-handle"></div>
+      </div>
+      <div id="nr-val">30%</div>
+    </div>
+    <div id="nr-desc">Attenuates steady-state background noise.<br>Higher = more reduction, may thin the sound.</div>
+  </div>
+  <div id="live-controls">
+    <div id="live-mode-selector">
+      <button class="lm-btn active" data-mode="flowfield">Flow</button>
+      <button class="lm-btn" data-mode="layers">Layers</button>
+      <button class="lm-btn" data-mode="warp">Warp</button>
+    </div>
+    <button id="live-stop-btn">Stop mic</button>
+  </div>
+</div>
+
+<!-- MODE BAR (file mode only) -->
 <div id="mode-bar" class="hidden">
   <button class="m-btn active" data-mode="flowfield">Flow</button>
   <button class="m-btn" data-mode="layers">Layers</button>
   <button class="m-btn" data-mode="warp">Warp</button>
 </div>
 
-<!-- UI -->
+<!-- UI (file mode only) -->
 <div id="ui" class="hidden">
   <div id="next-track-lbl"></div>
   <div id="meta-row">
@@ -653,7 +771,6 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   </div>
 </div>
 
-<!-- TWEAKPANE PANEL -->
 <div id="tweak-panel" class="hidden"></div>
 <button id="tweak-toggle" class="hidden" title="Parameters (P)">⚙</button>
 
@@ -675,12 +792,9 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 
 <script>
 // ═══════════════════════════════════════════════════════
-//  DPR-AWARE CANVAS HELPERS
-//  All drawing uses logical pixels (W×H); the canvas
-//  backing store is W*DPR × H*DPR so lines are crisp.
+//  DPR + CANVAS
 // ═══════════════════════════════════════════════════════
-const DPR = Math.min(window.devicePixelRatio || 1, 3); // cap at 3× to avoid OOM
-
+const DPR = Math.min(window.devicePixelRatio || 1, 3);
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const glowCanvas = document.getElementById('glow-canvas');
@@ -692,115 +806,67 @@ let animFrame;
 let currentMode = 'flowfield';
 let currentFile = null;
 
-// ── QUEUE STATE ────────────────────────────────────────
-let queue = [];           // array of File objects
-let queueIndex = -1;      // currently playing index
+// ── LIVE MODE STATE ────────────────────────────────────
+let isLiveMode = false;
+let micStream = null;
+let micSource = null;
+let micAnalyser = null;
+let noiseFloor = null;           // Float32Array — captured noise floor
+let nrAmount = 0.30;             // 0..1
+let liveVibeTick = 0;
+let liveModeViz = 'flowfield';
+
+// ── QUEUE ──────────────────────────────────────────────
+let queue = [];
+let queueIndex = -1;
 let shuffleMode = false;
-let shuffleOrder = [];    // shuffled indices
-// repeatMode: 'none' | 'one' | 'all'
+let shuffleOrder = [];
 let repeatMode = 'none';
 
-// Vibe palette — will be set after sentiment analysis
+// ── PALETTE ───────────────────────────────────────────
 let PALETTE = {
-  name: 'psychedelic',
-  hues: [280, 180, 60],
-  saturation: 90,
-  lightnessBase: 50,
-  trailAlpha: 0.04,
-  glowIntensity: 0.5,
-  speedMult: 1.0,
+  name: 'psychedelic', hues: [280, 180, 60],
+  saturation: 90, lightnessBase: 50,
+  trailAlpha: 0.04, glowIntensity: 0.5, speedMult: 1.0,
 };
 
 const VIBE_PALETTES = {
-  euphoric: {
-    name: 'euphoric', label: 'Euphoric',
-    hues: [45, 15, 320],
-    saturation: 95, lightnessBase: 55, trailAlpha: 0.035, glowIntensity: 0.65, speedMult: 1.2,
-    pillColor: 'rgba(255,180,50,0.7)', pillBg: 'rgba(255,150,0,0.12)',
-  },
-  melancholic: {
-    name: 'melancholic', label: 'Melancholic',
-    hues: [200, 230, 180],
-    saturation: 60, lightnessBase: 40, trailAlpha: 0.025, glowIntensity: 0.35, speedMult: 0.7,
-    pillColor: 'rgba(100,160,220,0.7)', pillBg: 'rgba(50,100,180,0.12)',
-  },
-  psychedelic: {
-    name: 'psychedelic', label: 'Psychedelic',
-    hues: [280, 160, 50],
-    saturation: 100, lightnessBase: 52, trailAlpha: 0.04, glowIntensity: 0.6, speedMult: 1.0,
-    pillColor: 'rgba(200,100,255,0.7)', pillBg: 'rgba(150,0,255,0.12)',
-  },
-  energetic: {
-    name: 'energetic', label: 'Energetic',
-    hues: [0, 30, 60],
-    saturation: 100, lightnessBase: 58, trailAlpha: 0.05, glowIntensity: 0.7, speedMult: 1.4,
-    pillColor: 'rgba(255,80,60,0.7)', pillBg: 'rgba(255,30,0,0.12)',
-  },
-  dreamy: {
-    name: 'dreamy', label: 'Dreamy',
-    hues: [270, 220, 310],
-    saturation: 70, lightnessBase: 60, trailAlpha: 0.02, glowIntensity: 0.45, speedMult: 0.8,
-    pillColor: 'rgba(180,140,255,0.7)', pillBg: 'rgba(120,80,200,0.12)',
-  },
-  tense: {
-    name: 'tense', label: 'Tense',
-    hues: [0, 20, 350],
-    saturation: 85, lightnessBase: 42, trailAlpha: 0.055, glowIntensity: 0.55, speedMult: 1.15,
-    pillColor: 'rgba(220,80,80,0.7)', pillBg: 'rgba(180,20,20,0.12)',
-  },
-  serene: {
-    name: 'serene', label: 'Serene',
-    hues: [160, 190, 130],
-    saturation: 55, lightnessBase: 50, trailAlpha: 0.02, glowIntensity: 0.3, speedMult: 0.65,
-    pillColor: 'rgba(80,200,160,0.7)', pillBg: 'rgba(0,160,100,0.12)',
-  },
-  dark: {
-    name: 'dark', label: 'Dark',
-    hues: [260, 300, 220],
-    saturation: 75, lightnessBase: 35, trailAlpha: 0.06, glowIntensity: 0.4, speedMult: 0.9,
-    pillColor: 'rgba(140,80,200,0.7)', pillBg: 'rgba(60,0,120,0.12)',
-  },
+  euphoric:    { name:'euphoric',    label:'Euphoric',    hues:[45,15,320],   saturation:95, lightnessBase:55, trailAlpha:0.035, glowIntensity:0.65, speedMult:1.2,  pillColor:'rgba(255,180,50,0.7)',  pillBg:'rgba(255,150,0,0.12)'    },
+  melancholic: { name:'melancholic', label:'Melancholic', hues:[200,230,180], saturation:60, lightnessBase:40, trailAlpha:0.025, glowIntensity:0.35, speedMult:0.7,  pillColor:'rgba(100,160,220,0.7)', pillBg:'rgba(50,100,180,0.12)'   },
+  psychedelic: { name:'psychedelic', label:'Psychedelic', hues:[280,160,50],  saturation:100,lightnessBase:52, trailAlpha:0.04,  glowIntensity:0.6,  speedMult:1.0,  pillColor:'rgba(200,100,255,0.7)', pillBg:'rgba(150,0,255,0.12)'    },
+  energetic:   { name:'energetic',   label:'Energetic',   hues:[0,30,60],     saturation:100,lightnessBase:58, trailAlpha:0.05,  glowIntensity:0.7,  speedMult:1.4,  pillColor:'rgba(255,80,60,0.7)',   pillBg:'rgba(255,30,0,0.12)'     },
+  dreamy:      { name:'dreamy',      label:'Dreamy',      hues:[270,220,310], saturation:70, lightnessBase:60, trailAlpha:0.02,  glowIntensity:0.45, speedMult:0.8,  pillColor:'rgba(180,140,255,0.7)', pillBg:'rgba(120,80,200,0.12)'   },
+  tense:       { name:'tense',       label:'Tense',       hues:[0,20,350],    saturation:85, lightnessBase:42, trailAlpha:0.055, glowIntensity:0.55, speedMult:1.15, pillColor:'rgba(220,80,80,0.7)',   pillBg:'rgba(180,20,20,0.12)'    },
+  serene:      { name:'serene',      label:'Serene',      hues:[160,190,130], saturation:55, lightnessBase:50, trailAlpha:0.02,  glowIntensity:0.3,  speedMult:0.65, pillColor:'rgba(80,200,160,0.7)',  pillBg:'rgba(0,160,100,0.12)'    },
+  dark:        { name:'dark',        label:'Dark',        hues:[260,300,220], saturation:75, lightnessBase:35, trailAlpha:0.06,  glowIntensity:0.4,  speedMult:0.9,  pillColor:'rgba(140,80,200,0.7)',  pillBg:'rgba(60,0,120,0.12)'     },
 };
 
+// ── FAVICON ────────────────────────────────────────────
 const faviconCanvas = document.createElement('canvas');
-faviconCanvas.width = 32;
-faviconCanvas.height = 32;
+faviconCanvas.width = 32; faviconCanvas.height = 32;
 const favCtx = faviconCanvas.getContext('2d');
-
 const faviconLink = document.createElement('link');
-faviconLink.rel = 'icon';
-document.head.appendChild(faviconLink);
-
+faviconLink.rel = 'icon'; document.head.appendChild(faviconLink);
 let favTime = 0;
-  
 function updateFaviconWave() {
-  const size = 32;
-  const cols = 8;
-  const rows = 6;
-  const cellW = size / cols;
-  const cellH = size / rows;
-  favCtx.fillStyle = "#000";
-  favCtx.fillRect(0, 0, size, size);
+  const size = 32, cols = 8, rows = 6;
+  favCtx.fillStyle = '#000'; favCtx.fillRect(0, 0, size, size);
   favTime += 0.06;
   for (let x = 0; x < cols; x++) {
     const wave = Math.sin(favTime + x * 0.6);
     const visibleRows = Math.floor(((wave + 1) / 2) * rows);
     for (let y = 0; y < visibleRows; y++) {
-      const px = x * cellW + cellW / 2;
-      const py = size - (y * cellH + cellH / 2);
-      favCtx.beginPath();
-      favCtx.arc(px, py, 1.2, 0, Math.PI * 2);
-      favCtx.fillStyle = "rgba(255,255,255,0.85)";
-      favCtx.fill();
+      const px = x * (size/cols) + (size/cols)/2;
+      const py = size - (y * (size/rows) + (size/rows)/2);
+      favCtx.beginPath(); favCtx.arc(px, py, 1.2, 0, Math.PI*2);
+      favCtx.fillStyle = 'rgba(255,255,255,0.85)'; favCtx.fill();
     }
   }
-  faviconLink.href = faviconCanvas.toDataURL("image/png");
+  faviconLink.href = faviconCanvas.toDataURL('image/png');
 }
 
-// ═══════════════════════════════════════════════════════
-//  RESIZE — DPR-correct sizing
-// ═══════════════════════════════════════════════════════
-let W, H;  // LOGICAL dimensions (CSS pixels)
+// ── RESIZE ────────────────────────────────────────────
+let W, H;
 const UI_HEIGHT = 110;
 
 function getAdaptiveGrid() {
@@ -811,63 +877,44 @@ function getAdaptiveGrid() {
   return { cols: Math.max(8, Math.min(50, cols)), rows: Math.max(8, Math.min(40, rows)) };
 }
 
-function getAdaptiveNoiseFreq() {
-  const ref = 600;
-  const dim = Math.max(W, H);
-  return (P.noiseFreq * 0.001) * (ref / dim);
-}
-
 function resize() {
-  // Logical size = CSS layout size
-  W = window.innerWidth;
-  H = window.innerHeight;
-
-  // Physical backing store = logical × DPR  →  crisp on retina
+  W = window.innerWidth; H = window.innerHeight;
   for (const c of [canvas, glowCanvas]) {
-    c.width  = Math.round(W * DPR);
-    c.height = Math.round(H * DPR);
-    c.style.width  = W + 'px';
-    c.style.height = H + 'px';
+    c.width = Math.round(W * DPR); c.height = Math.round(H * DPR);
+    c.style.width = W + 'px'; c.style.height = H + 'px';
   }
-
-  // Scale all drawing contexts once so all coordinates are in logical pixels
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   glowCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
-
-  // Home canvas (inside the drop screen overlay)
   const hc = document.getElementById('home-canvas');
   if (hc) {
-    const lw = hc.offsetWidth  || W;
-    const lh = hc.offsetHeight || H;
-    hc.width  = Math.round(lw * DPR);
-    hc.height = Math.round(lh * DPR);
-    hc.style.width  = lw + 'px';
-    hc.style.height = lh + 'px';
+    const lw = hc.offsetWidth || W, lh = hc.offsetHeight || H;
+    hc.width = Math.round(lw * DPR); hc.height = Math.round(lh * DPR);
+    hc.style.width = lw + 'px'; hc.style.height = lh + 'px';
   }
 }
 resize();
 window.addEventListener('resize', () => { resize(); rebuildGrid(); });
 
-// ═══════════════════════════════════════════════════════
-//  AUDIO SETUP
-// ═══════════════════════════════════════════════════════
+// ── AUDIO ──────────────────────────────────────────────
 const FFT = 4096;
 let freqData, timeData;
 
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioCtx.createAnalyser();
-  analyser.fftSize = FFT;
-  analyser.smoothingTimeConstant = 0.8;
+  analyser.fftSize = FFT; analyser.smoothingTimeConstant = 0.8;
   gainNode = audioCtx.createGain();
-  analyser.connect(gainNode); 
-  gainNode.connect(audioCtx.destination);
+  analyser.connect(gainNode); gainNode.connect(audioCtx.destination);
   freqData = new Uint8Array(analyser.frequencyBinCount);
   timeData = new Uint8Array(analyser.frequencyBinCount);
 }
 
 function getBands() {
-  analyser.getByteFrequencyData(freqData);
+  if (isLiveMode && micAnalyser) {
+    micAnalyser.getByteFrequencyData(freqData);
+  } else if (analyser) {
+    analyser.getByteFrequencyData(freqData);
+  }
   return {
     sub:    bandAvg(0,       0.015) / 255,
     bass:   bandAvg(0.015,   0.07)  / 255,
@@ -902,9 +949,39 @@ function smoothBands(raw) {
   for (const k in ALPHA) S[k] += (raw[k] - S[k]) * ALPHA[k];
 }
 
-// ═══════════════════════════════════════════════════════
-//  NOISE
-// ═══════════════════════════════════════════════════════
+// ── NOISE REDUCTION ────────────────────────────────────
+// Spectral subtraction: for each bin, subtract a fraction of the captured noise floor.
+// Simple, low-latency, doesn't require a worklet.
+const NR_SMOOTHING = 8; // frames to smooth the floor update
+let noiseFloorSmooth = null;
+let noiseFloorReady = false;
+let nrCaptureFrames = 0;
+const NR_CAPTURE_FRAMES = 30; // ~0.5s @ 60fps
+
+function captureNoiseFloor() {
+  if (!micAnalyser) return;
+  const buf = new Float32Array(micAnalyser.frequencyBinCount);
+  micAnalyser.getByteFrequencyData(freqData);
+  for (let i = 0; i < buf.length; i++) buf[i] = freqData[i];
+  if (!noiseFloor) {
+    noiseFloor = buf.slice();
+    noiseFloorSmooth = buf.slice();
+  } else {
+    for (let i = 0; i < buf.length; i++) {
+      noiseFloor[i] = noiseFloor[i] + (buf[i] - noiseFloor[i]) / NR_SMOOTHING;
+    }
+  }
+}
+
+function applyNoiseReduction(rawFreq) {
+  if (!noiseFloor || nrAmount < 0.01) return;
+  for (let i = 0; i < rawFreq.length; i++) {
+    const floor = noiseFloor[i] * nrAmount * 1.4;
+    rawFreq[i] = Math.max(0, rawFreq[i] - floor);
+  }
+}
+
+// ── NOISE ──────────────────────────────────────────────
 const perm = new Uint8Array(512);
 (function(){
   const p = [...Array(256)].map((_,i)=>i);
@@ -924,9 +1001,7 @@ function noise2(x,y){
               lerp(grad2(ab,xf,yf-1),grad2(bb,xf-1,yf-1),u),v);
 }
 
-// ═══════════════════════════════════════════════════════
-//  COLOR
-// ═══════════════════════════════════════════════════════
+// ── COLOR ──────────────────────────────────────────────
 let hueShift = 0;
 let peakFlash = 0;
 
@@ -934,29 +1009,23 @@ function noiseToHue(n) {
   const h = PALETTE.hues;
   const t01 = (n + 1) * 0.5;
   const span = h.length - 1;
-  const pos  = t01 * span;
-  const idx  = Math.floor(pos) % h.length;
+  const pos = t01 * span;
+  const idx = Math.floor(pos) % h.length;
   const blend = pos - Math.floor(pos);
   const base = h[idx % h.length];
   const next = h[(idx + 1) % h.length];
   let diff = next - base;
-  if (diff > 180) diff -= 360;
-  if (diff < -180) diff += 360;
+  if (diff > 180) diff -= 360; if (diff < -180) diff += 360;
   return ((base + diff * blend + hueShift) % 360 + 360) % 360;
 }
 
-// ═══════════════════════════════════════════════════════
-//  DYNAMIC PALETTE
-// ═══════════════════════════════════════════════════════
+// ── DYNAMIC PALETTE ────────────────────────────────────
 function generatePaletteFromAudio() {
   const energy = (S.bass + S.low + S.mid) / 3;
   const brightness = (S.hi + S.air);
-  const bass = S.bass;
-  const mids = S.mid;
-  const highs = S.hi;
+  const bass = S.bass, mids = S.mid, highs = S.hi;
   const noisiness = S.snare + S.cymbal;
-  let baseHue = bass * 20 + mids * 140 + highs * 260;
-  baseHue = baseHue % 360;
+  let baseHue = (bass * 20 + mids * 140 + highs * 260) % 360;
   const spread = 30 + noisiness * 120;
   return {
     hues: [baseHue, (baseHue + spread) % 360, (baseHue + spread * 2) % 360],
@@ -969,25 +1038,18 @@ function generatePaletteFromAudio() {
 }
 
 let dynamicPalette = { ...PALETTE };
-
 function smoothPalette(target) {
   const lp = (a,b,t) => a + (b-a)*t;
-  dynamicPalette.saturation   = lp(dynamicPalette.saturation,   target.saturation,   0.08);
-  dynamicPalette.lightnessBase= lp(dynamicPalette.lightnessBase,target.lightnessBase,0.08);
-  dynamicPalette.trailAlpha   = lp(dynamicPalette.trailAlpha,   target.trailAlpha,   0.05);
-  dynamicPalette.glowIntensity= lp(dynamicPalette.glowIntensity,target.glowIntensity,0.08);
-  dynamicPalette.speedMult    = lp(dynamicPalette.speedMult,    target.speedMult,    0.05);
+  dynamicPalette.saturation    = lp(dynamicPalette.saturation,    target.saturation,    0.08);
+  dynamicPalette.lightnessBase = lp(dynamicPalette.lightnessBase, target.lightnessBase, 0.08);
+  dynamicPalette.trailAlpha    = lp(dynamicPalette.trailAlpha,    target.trailAlpha,    0.05);
+  dynamicPalette.glowIntensity = lp(dynamicPalette.glowIntensity, target.glowIntensity, 0.08);
+  dynamicPalette.speedMult     = lp(dynamicPalette.speedMult,     target.speedMult,     0.05);
   for (let i = 0; i < 3; i++) dynamicPalette.hues[i] = lp(dynamicPalette.hues[i], target.hues[i], 0.08);
 }
 
-// ═══════════════════════════════════════════════════════
-//  TIME
-// ═══════════════════════════════════════════════════════
 let t = 0;
 
-// ═══════════════════════════════════════════════════════
-//  GLOW LAYER
-// ═══════════════════════════════════════════════════════
 function applyFade() {
   ctx.globalCompositeOperation = 'source-over';
   ctx.fillStyle = `rgba(0,0,0,${PALETTE.trailAlpha})`;
@@ -995,219 +1057,150 @@ function applyFade() {
   glowCtx.clearRect(0, 0, W, H);
 }
 
-// ═══════════════════════════════════════════════════════
-//  TWEAKPANE
-// ═══════════════════════════════════════════════════════
+// ── TWEAKPANE ──────────────────────────────────────────
 const P = {
-  cols:       20,
-  rows:       20,
-  lenScale:   0.55,
-  maxRot:     1.0,
-  noiseFreq:  3.0,
-  amp:        1.0,
-  speed:      4.0,
-  thickMin:   0.5,
-  thickMax:   18.0,
-  trailFade:  4,
-  alpha:      1.0,
-  autoGrid:   true,
+  cols: 20, rows: 20, lenScale: 0.55, maxRot: 1.0,
+  noiseFreq: 3.0, amp: 1.0, speed: 4.0, thickMin: 0.5, thickMax: 18.0,
+  trailFade: 4, alpha: 1.0, autoGrid: true,
 };
-
 let panelOpen = false;
 
 function buildPanel() {
   const panel = document.getElementById('tweak-panel');
   panel.innerHTML = '';
   const title = document.createElement('div');
-  title.className = 'tp-title';
-  title.textContent = 'Viz Parameters';
+  title.className = 'tp-title'; title.textContent = 'Viz Parameters';
   panel.appendChild(title);
   const defs = [
-    { key:'lenScale',  label:'Bar Length',  min:0.1,  max:2.0, step:0.05, fmt:v=>v.toFixed(2) },
-    { key:'maxRot',    label:'Max Rotation',min:0.1,  max:2.0, step:0.05, fmt:v=>(v*180|0)+'°' },
-    { key:'noiseFreq', label:'Noise Freq',  min:0.5,  max:10,  step:0.1,  fmt:v=>v.toFixed(1) },
-    { key:'amp',       label:'Amplitude',   min:0.1,  max:3.0, step:0.05, fmt:v=>v.toFixed(2) },
-    { key:'speed',     label:'Speed',       min:1,    max:10,  step:0.25, fmt:v=>v.toFixed(2) },
-    { key:'thickMin',  label:'Width Min',   min:0.1,  max:5,   step:0.1,  fmt:v=>v.toFixed(1) },
-    { key:'thickMax',  label:'Width Max',   min:2,    max:40,  step:0.5,  fmt:v=>v.toFixed(1) },
-    { key:'trailFade', label:'Trail Fade',  min:1,    max:20,  step:1,    fmt:v=>v },
-    { key:'alpha',     label:'Opacity',     min:0.1,  max:1.0, step:0.02, fmt:v=>v.toFixed(2) },
+    { key:'lenScale', label:'Bar Length',   min:0.1,  max:2.0,  step:0.05, fmt:v=>v.toFixed(2) },
+    { key:'maxRot',   label:'Max Rotation', min:0.1,  max:2.0,  step:0.05, fmt:v=>(v*180|0)+'°' },
+    { key:'noiseFreq',label:'Noise Freq',   min:0.5,  max:10,   step:0.1,  fmt:v=>v.toFixed(1) },
+    { key:'amp',      label:'Amplitude',    min:0.1,  max:3.0,  step:0.05, fmt:v=>v.toFixed(2) },
+    { key:'speed',    label:'Speed',        min:1,    max:10,   step:0.25, fmt:v=>v.toFixed(2) },
+    { key:'thickMin', label:'Width Min',    min:0.1,  max:5,    step:0.1,  fmt:v=>v.toFixed(1) },
+    { key:'thickMax', label:'Width Max',    min:2,    max:40,   step:0.5,  fmt:v=>v.toFixed(1) },
+    { key:'trailFade',label:'Trail Fade',   min:1,    max:20,   step:1,    fmt:v=>v },
+    { key:'alpha',    label:'Opacity',      min:0.1,  max:1.0,  step:0.02, fmt:v=>v.toFixed(2) },
   ];
   const autoRow = document.createElement('div');
   autoRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;';
-  const autoLbl = document.createElement('div');
-  autoLbl.className = 'tp-lbl';
-  autoLbl.textContent = 'Auto Grid';
-  const autoChk = document.createElement('input');
-  autoChk.type = 'checkbox';
-  autoChk.checked = P.autoGrid;
-  autoChk.style.cursor = 'pointer';
+  const autoLbl = document.createElement('div'); autoLbl.className = 'tp-lbl'; autoLbl.textContent = 'Auto Grid';
+  const autoChk = document.createElement('input'); autoChk.type = 'checkbox'; autoChk.checked = P.autoGrid; autoChk.style.cursor = 'pointer';
   autoChk.addEventListener('change', () => { P.autoGrid = autoChk.checked; buildPanel(); rebuildGrid(); });
-  autoRow.appendChild(autoLbl);
-  autoRow.appendChild(autoChk);
+  autoRow.appendChild(autoLbl); autoRow.appendChild(autoChk);
   panel.appendChild(autoRow);
   if (!P.autoGrid) {
-    const gridDefs = [
-      { key:'cols', label:'Columns', min:5, max:50, step:1, fmt:v=>v|0 },
-      { key:'rows', label:'Rows',    min:5, max:40, step:1, fmt:v=>v|0 },
-    ];
-    gridDefs.forEach(d => addSlider(panel, d));
+    [{ key:'cols', label:'Columns', min:5, max:50, step:1, fmt:v=>v|0 },
+     { key:'rows', label:'Rows',    min:5, max:40, step:1, fmt:v=>v|0 }].forEach(d => addSlider(panel, d));
   }
   defs.forEach(d => addSlider(panel, d));
   const reset = document.createElement('button');
-  reset.className = 'tp-reset';
-  reset.textContent = 'Reset defaults';
+  reset.className = 'tp-reset'; reset.textContent = 'Reset defaults';
   reset.addEventListener('click', () => {
-    Object.assign(P, { lenScale:0.55,maxRot:1.0,noiseFreq:3.0,amp:1.0,speed:4.0,thickMin:0.5,thickMax:18.0,trailFade:4,alpha:0.55,autoGrid:true });
+    Object.assign(P, { lenScale:0.55, maxRot:1.0, noiseFreq:3.0, amp:1.0, speed:4.0, thickMin:0.5, thickMax:18.0, trailFade:4, alpha:0.55, autoGrid:true });
     buildPanel(); rebuildGrid();
   });
   panel.appendChild(reset);
 }
 
 function addSlider(panel, d) {
-  const row = document.createElement('div');
-  row.className = 'tp-row';
-  const lbl = document.createElement('div');
-  lbl.className = 'tp-lbl';
-  lbl.textContent = d.label;
-  const valSpan = document.createElement('div');
-  valSpan.className = 'tp-val';
-  valSpan.textContent = d.fmt(P[d.key]);
+  const row = document.createElement('div'); row.className = 'tp-row';
+  const lbl = document.createElement('div'); lbl.className = 'tp-lbl'; lbl.textContent = d.label;
+  const valSpan = document.createElement('div'); valSpan.className = 'tp-val'; valSpan.textContent = d.fmt(P[d.key]);
   const slider = document.createElement('input');
-  slider.type = 'range';
-  slider.className = 'tp-slider';
-  slider.min = d.min; slider.max = d.max; slider.step = d.step;
-  slider.value = P[d.key];
-  slider.addEventListener('input', () => {
-    P[d.key] = parseFloat(slider.value);
-    valSpan.textContent = d.fmt(P[d.key]);
-    if (d.key === 'cols' || d.key === 'rows') rebuildGrid();
-  });
-  row.appendChild(lbl);
-  row.appendChild(slider);
-  row.appendChild(valSpan);
+  slider.type = 'range'; slider.className = 'tp-slider';
+  slider.min = d.min; slider.max = d.max; slider.step = d.step; slider.value = P[d.key];
+  slider.addEventListener('input', () => { P[d.key] = parseFloat(slider.value); valSpan.textContent = d.fmt(P[d.key]); if (d.key==='cols'||d.key==='rows') rebuildGrid(); });
+  row.appendChild(lbl); row.appendChild(slider); row.appendChild(valSpan);
   panel.appendChild(row);
 }
 
-function rebuildGrid() {
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, W, H);
-}
+function rebuildGrid() { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); }
 
-// ═══════════════════════════════════════════════════════
-//  SPEED CONTROL (now only via tweakpane slider)
-// ═══════════════════════════════════════════════════════
-let FLOW_SPEED = 4.0;
-
-// ═══════════════════════════════════════════════════════
-//  VIZ 1: FLOW FIELD
-// ═══════════════════════════════════════════════════════
+// ── VIZ 1: FLOW FIELD ──────────────────────────────────
 function drawFlowField() {
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, W, H);
-
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   peakFlash = Math.max(0, peakFlash - 0.05);
   if (S.bass > 0.72) peakFlash = 1;
 
   const { cols: autoCols, rows: autoRows } = getAdaptiveGrid();
   const cols = P.autoGrid ? autoCols : Math.round(P.cols);
   const rows = P.autoGrid ? autoRows : Math.round(P.rows);
-
-  const baseNoiseFreq = getAdaptiveNoiseFreq();
+  const baseNoiseFreq = (P.noiseFreq * 0.001) * (600 / Math.max(W, H));
   const noiseFreq = baseNoiseFreq + S.mid * (baseNoiseFreq * 2);
   const timeSpeed = ((P.speed / 10) * 0.008) + S.bass * 0.012 + S.sub * 0.02;
   const ampScale  = P.amp * (0.8 + S.mid * 1.2 + S.hi * 0.6);
 
-  const vizH = H - UI_HEIGHT;
+  const vizH = H - (isLiveMode ? 0 : UI_HEIGHT);
   const cellRef = Math.min(W / cols, vizH / rows);
   const thickBase = (P.thickMin / 20 * cellRef) + S.bass * (P.thickMax / 20 * cellRef) + S.sub * (P.thickMax / 20 * cellRef) * 0.5;
-  const lenScale  = P.lenScale + S.low * 0.35;
+  const lenScale = P.lenScale + S.low * 0.35;
   const maxRotRad = P.maxRot * Math.PI;
 
   t += timeSpeed;
   hueShift = (hueShift + 0.12 + S.mid * 0.6 * PALETTE.speedMult) % 360;
 
-  const gridW = W * 0.9;
-  const gridH = vizH * 0.9;
-  const cellW = gridW / cols;
-  const cellH = gridH / rows;
+  const gridW = W * 0.9, gridH = vizH * 0.9;
+  const cellW = gridW / cols, cellH = gridH / rows;
   const marginX = (W - gridW) * 0.5;
-  const marginY = (vizH - gridH) * 0.5 + UI_HEIGHT * 0.25;
+  const marginY = (vizH - gridH) * 0.5 + (isLiveMode ? 0 : UI_HEIGHT * 0.25);
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const cx = marginX + col * cellW + cellW * 0.5;
       const cy = marginY + row * cellH + cellH * 0.5;
-
       const nx = (cx / W) * P.noiseFreq;
       const ny = (cy / vizH) * P.noiseFreq;
-
       const n1 = noise2(nx + t * 0.7, ny + t * 0.3);
       const n2 = noise2(nx * 2 + t * 1.1, ny * 2 - t * 0.5);
       const n  = n1 * 0.7 + n2 * 0.3;
-
       const rawAngle = n * Math.PI * ampScale;
       const angle = Math.sign(rawAngle) * Math.min(Math.abs(rawAngle), maxRotRad);
-
       const hue = noiseToHue(n);
       const saturation = PALETTE.saturation * 0.75 + S.hi * 25;
       const lightness  = PALETTE.lightnessBase + S.mid * 25 + peakFlash * 20;
-      const alpha      = P.alpha + S.bass * 0.35;
-
+      const alpha = P.alpha + S.bass * 0.35;
       const thickness = Math.max(0.5, thickBase * Math.abs(n) * 1.5);
-      const halfLen   = cellW * lenScale * 0.5;
-
-      const dx = Math.cos(angle) * halfLen;
-      const dy = Math.sin(angle) * halfLen;
-
+      const halfLen = cellW * lenScale * 0.5;
+      const dx = Math.cos(angle) * halfLen, dy = Math.sin(angle) * halfLen;
       ctx.beginPath();
-      ctx.moveTo(cx - dx, cy - dy);
-      ctx.lineTo(cx + dx, cy + dy);
+      ctx.moveTo(cx - dx, cy - dy); ctx.lineTo(cx + dx, cy + dy);
       ctx.strokeStyle = `hsla(${hue},${saturation}%,${lightness}%,${alpha})`;
-      ctx.lineWidth = thickness;
-      ctx.lineCap = 'butt';
-      ctx.stroke();
+      ctx.lineWidth = thickness; ctx.lineCap = 'butt'; ctx.stroke();
     }
   }
 }
 
-// ═══════════════════════════════════════════════════════
-//  VIZ 2: LAYERS
-// ═══════════════════════════════════════════════════════
+// ── VIZ 2: LAYERS ──────────────────────────────────────
 const LAYER_DEFS = [
-  { label: '20–60 Hz',    yFrac: 0.12, lo: 0.000, hi: 0.015 },
-  { label: '60–250 Hz',   yFrac: 0.24, lo: 0.015, hi: 0.060 },
-  { label: '250–800 Hz',  yFrac: 0.38, lo: 0.060, hi: 0.190 },
-  { label: '800–3k Hz',   yFrac: 0.54, lo: 0.190, hi: 0.380 },
-  { label: '3k–8k Hz',    yFrac: 0.68, lo: 0.380, hi: 0.620 },
-  { label: '8k–20k Hz',   yFrac: 0.82, lo: 0.620, hi: 0.950 },
+  { label:'20–60 Hz',   yFrac:0.12, lo:0.000, hi:0.015 },
+  { label:'60–250 Hz',  yFrac:0.24, lo:0.015, hi:0.060 },
+  { label:'250–800 Hz', yFrac:0.38, lo:0.060, hi:0.190 },
+  { label:'800–3k Hz',  yFrac:0.54, lo:0.190, hi:0.380 },
+  { label:'3k–8k Hz',   yFrac:0.68, lo:0.380, hi:0.620 },
+  { label:'8k–20k Hz',  yFrac:0.82, lo:0.620, hi:0.950 },
 ];
-
 const layerAmp    = new Float32Array(LAYER_DEFS.length);
 const layerPhases = new Float32Array(LAYER_DEFS.length);
 const layerBright = new Float32Array(LAYER_DEFS.length).fill(0.5);
 
 function getLayerAmp(lo, hi) {
   if (!freqData) return 0;
-  const L = freqData.length;
-  const a = Math.floor(lo * L), b = Math.floor(hi * L);
-  let s = 0;
-  for (let i = a; i < b; i++) s += freqData[i];
+  const L = freqData.length, a = Math.floor(lo * L), b = Math.floor(hi * L);
+  let s = 0; for (let i = a; i < b; i++) s += freqData[i];
   return Math.pow((s / Math.max(1, b - a)) / 255, 0.8);
 }
 
 function drawLayers() {
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   glowCtx.clearRect(0, 0, W, H);
-
   t += 0.005 * PALETTE.speedMult;
   hueShift = (hueShift + 0.06 + S.mid * 0.2) % 360;
-  analyser.getByteFrequencyData(freqData);
+  if (isLiveMode && micAnalyser) micAnalyser.getByteFrequencyData(freqData);
+  else if (analyser) analyser.getByteFrequencyData(freqData);
 
-  const vizH = H - UI_HEIGHT;
-  const waveW = W * 0.72;
-  const waveX = W * 0.15;
+  const vizH = H - (isLiveMode ? 0 : UI_HEIGHT);
+  const waveW = W * 0.72, waveX = W * 0.15;
   const segments = 200;
 
   for (let i = 0; i < LAYER_DEFS.length; i++) {
@@ -1215,33 +1208,25 @@ function drawLayers() {
     const smoothRate = 0.18 + (1 - layerAmp[i]) * 0.18;
     layerAmp[i] += (raw - layerAmp[i]) * smoothRate;
   }
-
   const order = [...Array(LAYER_DEFS.length).keys()].sort((a, b) => layerAmp[b] - layerAmp[a]);
   const targetBright = new Float32Array(LAYER_DEFS.length);
   order.forEach((li, rank) => {
-    const energy = layerAmp[li];
-    let b = 1.0 - rank * 0.14;
-    b += energy * 0.5;
-    b = Math.max(0.5, b);
-    targetBright[li] = Math.min(1.0, b);
+    let b = 1.0 - rank * 0.14 + layerAmp[li] * 0.5;
+    targetBright[li] = Math.min(1.0, Math.max(0.5, b));
   });
-  for (let i = 0; i < LAYER_DEFS.length; i++) {
-    layerBright[i] += (targetBright[i] - layerBright[i]) * 0.09;
-  }
+  for (let i = 0; i < LAYER_DEFS.length; i++) layerBright[i] += (targetBright[i] - layerBright[i]) * 0.09;
 
   LAYER_DEFS.forEach((def, li) => {
     const energy = layerAmp[li];
     layerPhases[li] += Math.max(0.012, 0.008 + energy * 0.10 * PALETTE.speedMult);
-
-    const cy = vizH * def.yFrac + UI_HEIGHT * 0.55;
+    const cy = vizH * def.yFrac + (isLiveMode ? 0 : UI_HEIGHT * 0.55);
     const laneH = vizH * 0.048;
     const bm = layerBright[li];
-
     const hFrac = li / (LAYER_DEFS.length - 1);
     const hIdx  = Math.floor(hFrac * (PALETTE.hues.length - 1));
     const hBlend = (hFrac * (PALETTE.hues.length - 1)) % 1;
-    const hBase  = PALETTE.hues[hIdx % PALETTE.hues.length];
-    const hNext  = PALETTE.hues[(hIdx + 1) % PALETTE.hues.length];
+    const hBase = PALETTE.hues[hIdx % PALETTE.hues.length];
+    const hNext = PALETTE.hues[(hIdx + 1) % PALETTE.hues.length];
     let hDiff = hNext - hBase; if (hDiff > 180) hDiff -= 360; if (hDiff < -180) hDiff += 360;
     const hue  = ((hBase + hDiff * hBlend + hueShift * 0.3) % 360 + 360) % 360;
     const sat  = PALETTE.saturation;
@@ -1249,71 +1234,49 @@ function drawLayers() {
     const alpha = Math.max(0.15, Math.min(0.92, 0.15 + energy * 0.75 * bm + bm * 0.12));
     const lineW = Math.max(0.5, 0.6 + energy * 3.5 * bm);
     const ph = layerPhases[li];
-
     ctx.beginPath();
     for (let i = 0; i <= segments; i++) {
-      const x  = waveX + (i / segments) * waveW;
+      const x = waveX + (i / segments) * waveW;
       const xn = i / segments;
       const idleAmp = 0.08 + energy * 0.92;
-      const y  = cy
-        + Math.sin(xn * Math.PI * 5.0  + ph)         * idleAmp * laneH * 1.4
-        + Math.sin(xn * Math.PI * 10.5 + ph * 1.6)   * idleAmp * laneH * 0.35
-        + Math.sin(xn * Math.PI * 2.5  + t * 0.65)   * idleAmp * laneH * 0.20
-        + Math.sin(xn * Math.PI * 20   + ph * 2.2)   * idleAmp * laneH * 0.10;
+      const y = cy
+        + Math.sin(xn * Math.PI * 5.0  + ph)       * idleAmp * laneH * 1.4
+        + Math.sin(xn * Math.PI * 10.5 + ph * 1.6) * idleAmp * laneH * 0.35
+        + Math.sin(xn * Math.PI * 2.5  + t * 0.65) * idleAmp * laneH * 0.20
+        + Math.sin(xn * Math.PI * 20   + ph * 2.2) * idleAmp * laneH * 0.10;
       i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
     ctx.strokeStyle = `hsla(${hue},${sat}%,${lit}%,${alpha})`;
-    ctx.lineWidth = lineW;
-    ctx.lineCap = 'butt';
-    ctx.lineJoin = 'butt';
-    ctx.stroke();
-
+    ctx.lineWidth = lineW; ctx.lineCap = 'butt'; ctx.lineJoin = 'butt'; ctx.stroke();
     const lblAlpha = 0.18 + bm * 0.55 + energy * 0.25;
     ctx.fillStyle = `hsla(${hue},${sat}%,${Math.min(85, lit + 10)}%,${lblAlpha})`;
-    ctx.font = `300 9px 'IBM Plex Mono'`;
-    ctx.textAlign = 'right';
+    ctx.font = `300 9px 'IBM Plex Mono'`; ctx.textAlign = 'right';
     ctx.fillText(def.label, waveX - 10, cy + 3.5);
-
-    const barX  = waveX + waveW + 12;
-    const barH  = laneH * 1.8;
-    const fill  = energy * barH;
-    ctx.fillStyle = `hsla(${hue},${sat}%,20%,0.25)`;
-    ctx.fillRect(barX, cy - barH * 0.5, 2, barH);
-    ctx.fillStyle = `hsla(${hue},${sat}%,${lit}%,${0.45 + energy * 0.45})`;
-    ctx.fillRect(barX, cy + barH * 0.5 - fill, 2, fill);
-
-    ctx.textAlign = 'left';
-    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    ctx.moveTo(waveX - 90, cy + laneH * 0.9);
-    ctx.lineTo(waveX + waveW + 22, cy + laneH * 0.9);
-    ctx.stroke();
+    const barX = waveX + waveW + 12, barH = laneH * 1.8, fill = energy * barH;
+    ctx.fillStyle = `hsla(${hue},${sat}%,20%,0.25)`; ctx.fillRect(barX, cy - barH * 0.5, 2, barH);
+    ctx.fillStyle = `hsla(${hue},${sat}%,${lit}%,${0.45 + energy * 0.45})`; ctx.fillRect(barX, cy + barH * 0.5 - fill, 2, fill);
+    ctx.textAlign = 'left'; ctx.strokeStyle = 'rgba(255,255,255,0.035)'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(waveX - 90, cy + laneH * 0.9); ctx.lineTo(waveX + waveW + 22, cy + laneH * 0.9); ctx.stroke();
   });
-
-  ctx.fillStyle = 'rgba(255,255,255,0.06)';
-  ctx.font = `300 9px 'IBM Plex Mono'`;
-  ctx.textAlign = 'right';
-  ctx.fillText('SPECTRUM', W - 26, 22);
-  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.font = `300 9px 'IBM Plex Mono'`;
+  ctx.textAlign = 'right'; ctx.fillText('SPECTRUM', W - 26, 22); ctx.textAlign = 'left';
 }
 
-// ═══════════════════════════════════════════════════════
-//  VIZ 3: WARP
-// ═══════════════════════════════════════════════════════
+// ── VIZ 3: WARP ────────────────────────────────────────
 function drawWarp() {
   applyFade();
   t += (0.004 + S.bass * 0.016) * PALETTE.speedMult;
   hueShift = (hueShift + 0.12 + S.mid * 0.55 * PALETTE.speedMult) % 360;
 
-  const vizH = H - UI_HEIGHT;
+  const vizH = H - (isLiveMode ? 0 : UI_HEIGHT);
   const cx = W / 2, cy = vizH / 2;
   const bars = 180;
   const angleStep = (Math.PI * 2) / bars;
 
-  analyser.getByteFrequencyData(freqData);
-  ctx.beginPath();
-  let first = true;
+  if (isLiveMode && micAnalyser) micAnalyser.getByteFrequencyData(freqData);
+  else if (analyser) analyser.getByteFrequencyData(freqData);
+
+  ctx.beginPath(); let first = true;
   for (let i = 0; i < bars; i++) {
     const idx = Math.floor((i / bars) * (freqData.length * 0.65));
     const mag = freqData[idx] / 255;
@@ -1328,23 +1291,17 @@ function drawWarp() {
   const hMid  = (PALETTE.hues[1] + hueShift) % 360;
   const hHi   = (PALETTE.hues[2] + hueShift) % 360;
   const grd = ctx.createLinearGradient(0, 0, W, vizH);
-  grd.addColorStop(0, `hsla(${hBase},${PALETTE.saturation}%,${PALETTE.lightnessBase + S.hi*15}%,0.75)`);
+  grd.addColorStop(0,   `hsla(${hBase},${PALETTE.saturation}%,${PALETTE.lightnessBase + S.hi*15}%,0.75)`);
   grd.addColorStop(0.5, `hsla(${hMid},${PALETTE.saturation}%,${PALETTE.lightnessBase + 5 + S.hi*15}%,0.75)`);
-  grd.addColorStop(1, `hsla(${hHi},${PALETTE.saturation}%,${PALETTE.lightnessBase + S.hi*15}%,0.75)`);
-  ctx.strokeStyle = grd;
-  ctx.lineWidth = 1.5 + S.bass * 4;
-  ctx.stroke();
+  grd.addColorStop(1,   `hsla(${hHi},${PALETTE.saturation}%,${PALETTE.lightnessBase + S.hi*15}%,0.75)`);
+  ctx.strokeStyle = grd; ctx.lineWidth = 1.5 + S.bass * 4; ctx.stroke();
 
   const fillG = glowCtx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, vizH)*0.5);
   fillG.addColorStop(0, `hsla(${hBase},80%,55%,${0.04 + S.bass * 0.07})`);
   fillG.addColorStop(1, `hsla(${hBase},80%,40%,0)`);
-  glowCtx.fillStyle = fillG;
-  glowCtx.beginPath();
-  glowCtx.arc(cx, cy, Math.min(W, vizH)*0.5, 0, Math.PI*2);
-  glowCtx.fill();
+  glowCtx.fillStyle = fillG; glowCtx.beginPath(); glowCtx.arc(cx, cy, Math.min(W, vizH)*0.5, 0, Math.PI*2); glowCtx.fill();
 
-  glowCtx.beginPath();
-  first = true;
+  glowCtx.beginPath(); first = true;
   for (let i = 0; i < bars; i++) {
     const idx = Math.floor((i / bars) * (freqData.length * 0.65));
     const mag = freqData[idx] / 255;
@@ -1354,14 +1311,12 @@ function drawWarp() {
     const wx = cx + Math.cos(angle) * r, wy = cy + Math.sin(angle) * r;
     first ? (glowCtx.moveTo(wx, wy), first = false) : glowCtx.lineTo(wx, wy);
   }
-  glowCtx.closePath();
-  glowCtx.strokeStyle = `hsla(${hBase},100%,75%,0.2)`;
-  glowCtx.lineWidth = 10;
-  glowCtx.stroke();
+  glowCtx.closePath(); glowCtx.strokeStyle = `hsla(${hBase},100%,75%,0.2)`; glowCtx.lineWidth = 10; glowCtx.stroke();
 
-  analyser.getByteTimeDomainData(timeData);
-  const wW = W * 0.48, wHh = vizH * 0.09;
-  const wX = cx - wW / 2;
+  if (!timeData) return;
+  if (isLiveMode && micAnalyser) micAnalyser.getByteTimeDomainData(timeData);
+  else if (analyser) analyser.getByteTimeDomainData(timeData);
+  const wW = W * 0.48, wHh = vizH * 0.09, wX = cx - wW / 2;
   ctx.beginPath();
   for (let i = 0; i < timeData.length; i++) {
     const x = wX + (i / timeData.length) * wW;
@@ -1369,9 +1324,7 @@ function drawWarp() {
     const y = cy + v * wHh * (1 + S.mid * 1.4);
     i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
   }
-  ctx.strokeStyle = `hsla(${hHi},100%,80%,0.55)`;
-  ctx.lineWidth = 1 + S.hi * 2.5;
-  ctx.stroke();
+  ctx.strokeStyle = `hsla(${hHi},100%,80%,0.55)`; ctx.lineWidth = 1 + S.hi * 2.5; ctx.stroke();
 
   if (S.hi > 0.38) {
     const count = Math.floor(S.hi * 14);
@@ -1381,34 +1334,71 @@ function drawWarp() {
       const px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r;
       const h = (hMid + i * 18) % 360;
       ctx.beginPath(); ctx.arc(px, py, 1.4 + S.hi * 3.2, 0, Math.PI*2);
-      ctx.fillStyle = `hsla(${h},100%,78%,${S.hi * 0.75})`;
-      ctx.fill();
+      ctx.fillStyle = `hsla(${h},100%,78%,${S.hi * 0.75})`; ctx.fill();
       glowCtx.beginPath(); glowCtx.arc(px, py, (1.4 + S.hi * 3.2) * 4, 0, Math.PI*2);
-      glowCtx.fillStyle = `hsla(${h},100%,78%,${S.hi * 0.12})`;
-      glowCtx.fill();
+      glowCtx.fillStyle = `hsla(${h},100%,78%,${S.hi * 0.12})`; glowCtx.fill();
     }
   }
-
   if (S.sub > 0.28) {
     const r = S.sub * 55;
     const sg = glowCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
     sg.addColorStop(0, `hsla(${hBase},100%,90%,${S.sub * 0.9})`);
     sg.addColorStop(1, `hsla(${hBase},100%,60%,0)`);
-    glowCtx.fillStyle = sg;
-    glowCtx.beginPath(); glowCtx.arc(cx, cy, r, 0, Math.PI*2); glowCtx.fill();
+    glowCtx.fillStyle = sg; glowCtx.beginPath(); glowCtx.arc(cx, cy, r, 0, Math.PI*2); glowCtx.fill();
   }
 }
 
-// ═══════════════════════════════════════════════════════
-//  MAIN LOOP
-// ═══════════════════════════════════════════════════════
+// ── MAIN LOOP ─────────────────────────────────────────
 function render() {
   animFrame = requestAnimationFrame(render);
   updateFaviconWave();
+
+  if (isLiveMode) {
+    if (!micAnalyser) return;
+
+    // apply NR to freq data copy before band extraction
+    micAnalyser.getByteFrequencyData(freqData);
+    applyNoiseReduction(freqData);
+
+    // level meter
+    let rmsSum = 0;
+    for (let i = 0; i < freqData.length; i++) rmsSum += freqData[i] * freqData[i];
+    const rmsLevel = Math.sqrt(rmsSum / freqData.length) / 255;
+    document.getElementById('level-fill').style.width = Math.min(100, rmsLevel * 280) + '%';
+
+    // mic ring pulse
+    document.getElementById('mic-ring').classList.toggle('hot', rmsLevel > 0.08);
+
+    const raw = getBands();
+    smoothBands(raw);
+
+    // update live vibe every ~3s
+    liveVibeTick++;
+    if (liveVibeTick % 180 === 0) {
+      const vibe = detectVibe(S);
+      const vp = VIBE_PALETTES[vibe] || VIBE_PALETTES.psychedelic;
+      PALETTE = { ...vp };
+      const pill = document.getElementById('live-vibe-pill');
+      pill.textContent = vp.label || vibe;
+      pill.style.color = vp.pillColor || 'rgba(200,100,255,0.7)';
+      pill.style.background = vp.pillBg || 'rgba(150,0,255,0.12)';
+      pill.style.borderColor = vp.pillColor || 'rgba(200,100,255,0.3)';
+    }
+
+    const newPalette = generatePaletteFromAudio();
+    smoothPalette(newPalette);
+    PALETTE = dynamicPalette;
+
+    const mode = liveModeViz;
+    if (mode === 'flowfield') drawFlowField();
+    else if (mode === 'layers') drawLayers();
+    else if (mode === 'warp') drawWarp();
+    return;
+  }
+
   if (!analyser) return;
   const raw = getBands();
   smoothBands(raw);
-  
   const newPalette = generatePaletteFromAudio();
   smoothPalette(newPalette);
   PALETTE = dynamicPalette;
@@ -1419,13 +1409,10 @@ function render() {
   updateProgress();
 }
 
-// ═══════════════════════════════════════════════════════
-//  GROQ LLM (SERVER CALL)
-// ═══════════════════════════════════════════════════════
+// ── LLM / SENTIMENT ───────────────────────────────────
 async function callLLM(prompt) {
   const res = await fetch('/api/vibe', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt })
   });
   if (!res.ok) throw new Error('LLM failed');
@@ -1433,45 +1420,35 @@ async function callLLM(prompt) {
   return data.result;
 }
 
-// ═══════════════════════════════════════════════════════
-//  SENTIMENT ANALYSIS
-// ═══════════════════════════════════════════════════════
 function detectVibe(S) {
   const energy = (S.bass + S.low + S.mid) / 3;
   const brightness = (S.hi + S.air) / 2;
   const aggression = S.snare + S.cymbal;
   const warmth = S.bass + S.low;
   const clarity = S.vocal + S.string;
-  const score = {
-    energetic: 0, melancholic: 0, dreamy: 0, euphoric: 0,
-    tense: 0, serene: 0, dark: 0, psychedelic: 0,
-  };
-  score.energetic += energy * 1.2; score.energetic += brightness * 0.8; score.energetic += aggression * 0.6;
-  score.euphoric += energy * 1.0; score.euphoric += brightness * 0.6; score.euphoric += warmth * 0.5;
-  score.melancholic += (1 - energy) * 1.2; score.melancholic += (1 - brightness) * 0.8; score.melancholic += clarity * 0.5;
-  score.dreamy += S.air * 1.2; score.dreamy += clarity * 0.7; score.dreamy += (1 - aggression) * 0.5;
-  score.tense += aggression * 1.2; score.tense += brightness * 0.5; score.tense += energy * 0.4;
-  score.dark += (1 - brightness) * 1.0; score.dark += aggression * 0.6; score.dark += (1 - clarity) * 0.4;
-  score.serene += (1 - energy) * 1.2; score.serene += (1 - aggression) * 0.8; score.serene += S.air * 0.4;
-  score.psychedelic += 0.3; score.psychedelic += Math.abs(S.mid - S.hi) * 0.5; score.psychedelic += brightness * 0.4;
-  let best = "dreamy", max = -Infinity;
-  for (const k in score) { if (score[k] > max) { max = score[k]; best = k; } }
+  const score = { energetic:0, melancholic:0, dreamy:0, euphoric:0, tense:0, serene:0, dark:0, psychedelic:0 };
+  score.energetic   += energy * 1.2 + brightness * 0.8 + aggression * 0.6;
+  score.euphoric    += energy * 1.0 + brightness * 0.6 + warmth * 0.5;
+  score.melancholic += (1-energy) * 1.2 + (1-brightness) * 0.8 + clarity * 0.5;
+  score.dreamy      += S.air * 1.2 + clarity * 0.7 + (1-aggression) * 0.5;
+  score.tense       += aggression * 1.2 + brightness * 0.5 + energy * 0.4;
+  score.dark        += (1-brightness) * 1.0 + aggression * 0.6 + (1-clarity) * 0.4;
+  score.serene      += (1-energy) * 1.2 + (1-aggression) * 0.8 + S.air * 0.4;
+  score.psychedelic += 0.3 + Math.abs(S.mid - S.hi) * 0.5 + brightness * 0.4;
+  let best = 'dreamy', max = -Infinity;
+  for (const k in score) if (score[k] > max) { max = score[k]; best = k; }
   return best;
 }
 
-async function analyzeVibe(filename, energyProfile) {
-  const rms = parseFloat(energyProfile.rms);
-  const zcr = parseFloat(energyProfile.zcr);
+async function analyzeVibe(filename, profile) {
+  const rms = parseFloat(profile.rms), zcr = parseFloat(profile.zcr);
   const prompt = `Song: "${filename}"\nRMS: ${rms}\nZCR: ${zcr}\nEnergy: bass=${S.bass.toFixed(2)}, mid=${S.mid.toFixed(2)}, hi=${S.hi.toFixed(2)}\n\nReturn ONE word:\neuphoric, melancholic, energetic, dreamy, tense, serene, dark, psychedelic\n`;
   let vibe;
   try {
     const llmVibe = await callLLM(prompt);
-    if (llmVibe) { vibe = llmVibe.trim().toLowerCase(); } else { throw new Error("Empty LLM response"); }
-  } catch (e) {
-    console.log('LLM failed, using heuristic:', e.message);
-    vibe = detectVibe(S);
-  }
-  if (!VIBE_PALETTES[vibe]) { console.log('Invalid vibe, fallback'); vibe = detectVibe(S); }
+    if (llmVibe) vibe = llmVibe.trim().toLowerCase(); else throw new Error('Empty');
+  } catch(e) { console.log('LLM failed, heuristic:', e.message); vibe = detectVibe(S); }
+  if (!VIBE_PALETTES[vibe]) vibe = detectVibe(S);
   return vibe;
 }
 
@@ -1482,22 +1459,145 @@ async function estimateEnergyProfile(buffer) {
   for (let i = 0; i < samples.length; i++) rms += samples[i] * samples[i];
   rms = Math.sqrt(rms / samples.length);
   let zc = 0;
-  for (let i = 1; i < samples.length; i++) { if (samples[i] * samples[i-1] < 0) zc++; }
-  const zcr = zc / samples.length;
-  return { rms: rms.toFixed(3), zcr: zcr.toFixed(4), duration: buffer.duration.toFixed(1) };
+  for (let i = 1; i < samples.length; i++) if (samples[i] * samples[i-1] < 0) zc++;
+  return { rms: rms.toFixed(3), zcr: (zc / samples.length).toFixed(4), duration: buffer.duration.toFixed(1) };
 }
 
 // ═══════════════════════════════════════════════════════
-//  QUEUE MANAGEMENT
+//  LIVE MIC MODE
 // ═══════════════════════════════════════════════════════
+async function startLiveMode() {
+  homeAnimActive = false;
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,  // we do our own
+        autoGainControl:  false,
+        channelCount: 1,
+        sampleRate: 44100,
+      }
+    });
+  } catch (err) {
+    alert('Microphone access denied or unavailable. Please allow microphone access and try again.');
+    homeAnimActive = true;
+    if (!homeAnimRunning) startHomeAnim();
+    return;
+  }
+
+  micStream = stream;
+  isLiveMode = true;
+
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+  micAnalyser = audioCtx.createAnalyser();
+  micAnalyser.fftSize = FFT;
+  micAnalyser.smoothingTimeConstant = 0.75;
+  freqData = new Uint8Array(micAnalyser.frequencyBinCount);
+  timeData = new Uint8Array(micAnalyser.frequencyBinCount);
+
+  micSource = audioCtx.createMediaStreamSource(stream);
+  micSource.connect(micAnalyser);
+  // NOTE: intentionally NOT connecting to destination — avoids mic feedback
+
+  // Capture noise floor over first ~0.5s
+  noiseFloor = null;
+  nrCaptureFrames = 0;
+  noiseFloorReady = false;
+  const captureInterval = setInterval(() => {
+    captureNoiseFloor();
+    nrCaptureFrames++;
+    if (nrCaptureFrames >= NR_CAPTURE_FRAMES) {
+      clearInterval(captureInterval);
+      noiseFloorReady = true;
+      console.log('Noise floor captured.');
+    }
+  }, 1000 / 60);
+
+  PALETTE = { ...VIBE_PALETTES.psychedelic };
+  liveModeViz = 'flowfield';
+
+  // Switch screens
+  document.getElementById('drop-screen').classList.add('off');
+  document.getElementById('live-screen').classList.remove('off');
+
+  hueShift = 0; t = 0; peakFlash = 0;
+  if (!animFrame) render();
+}
+
+function stopLiveMode() {
+  isLiveMode = false;
+  if (micSource) { try { micSource.disconnect(); } catch(e){} micSource = null; }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  micAnalyser = null;
+  noiseFloor = null;
+  if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  glowCtx.clearRect(0, 0, W, H);
+  document.getElementById('live-screen').classList.add('off');
+  document.getElementById('drop-screen').classList.remove('off');
+  document.getElementById('level-fill').style.width = '0%';
+  document.getElementById('mic-ring').classList.remove('hot');
+  document.getElementById('live-vibe-pill').textContent = 'listening…';
+  homeAnimActive = true;
+  if (!homeAnimRunning) startHomeAnim();
+}
+
+// ── NR SLIDER ─────────────────────────────────────────
+(function() {
+  const wrap   = document.getElementById('nr-slider-wrap');
+  const fill   = document.getElementById('nr-fill');
+  const handle = document.getElementById('nr-handle');
+  const valEl  = document.getElementById('nr-val');
+  let dragging = false;
+
+  function setNR(v) {
+    nrAmount = Math.max(0, Math.min(1, v));
+    const pct = nrAmount * 100;
+    fill.style.width = pct + '%';
+    handle.style.left = pct + '%';
+    valEl.textContent = Math.round(pct) + '%';
+  }
+
+  function getPct(clientX) {
+    const rect = wrap.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  }
+
+  wrap.addEventListener('mousedown', e => { e.preventDefault(); dragging = true; setNR(getPct(e.clientX)); });
+  document.addEventListener('mousemove', e => { if (dragging) setNR(getPct(e.clientX)); });
+  document.addEventListener('mouseup', () => { dragging = false; });
+  wrap.addEventListener('touchstart', e => { dragging = true; setNR(getPct(e.touches[0].clientX)); }, { passive: true });
+  document.addEventListener('touchmove', e => { if (dragging) setNR(getPct(e.touches[0].clientX)); }, { passive: true });
+  document.addEventListener('touchend', () => { dragging = false; });
+
+  setNR(0.30);
+})();
+
+// ── LIVE MODE SELECTOR ────────────────────────────────
+document.querySelectorAll('.lm-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.lm-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    liveModeViz = btn.dataset.mode;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    glowCtx.clearRect(0, 0, W, H);
+    t = 0; hueShift = 0;
+  });
+});
+
+document.getElementById('live-stop-btn').addEventListener('click', stopLiveMode);
+document.getElementById('live-btn').addEventListener('click', startLiveMode);
+
+// ── QUEUE ──────────────────────────────────────────────
 function generateShuffleOrder() {
   shuffleOrder = [...Array(queue.length).keys()];
-  // Fisher-Yates, keep current track first if playing
   for (let i = shuffleOrder.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffleOrder[i], shuffleOrder[j]] = [shuffleOrder[j], shuffleOrder[i]];
   }
-  // Move current index to front of shuffleOrder
   if (queueIndex >= 0) {
     const pos = shuffleOrder.indexOf(queueIndex);
     if (pos > 0) { shuffleOrder.splice(pos, 1); shuffleOrder.unshift(queueIndex); }
@@ -1506,7 +1606,7 @@ function generateShuffleOrder() {
 
 function getNextIndex() {
   if (queue.length === 0) return -1;
-  if (repeatMode === 'one') return queueIndex; // repeat same
+  if (repeatMode === 'one') return queueIndex;
   if (shuffleMode) {
     const pos = shuffleOrder.indexOf(queueIndex);
     const next = pos + 1;
@@ -1536,7 +1636,7 @@ function addFilesToQueue(files) {
 }
 
 function removeFromQueue(idx) {
-  if (idx === queueIndex) return; // don't remove currently playing
+  if (idx === queueIndex) return;
   queue.splice(idx, 1);
   if (idx < queueIndex) queueIndex--;
   if (shuffleMode) generateShuffleOrder();
@@ -1547,7 +1647,6 @@ function moveQueueItem(fromIdx, toIdx) {
   if (fromIdx === toIdx) return;
   const [item] = queue.splice(fromIdx, 1);
   queue.splice(toIdx, 0, item);
-  // Adjust queueIndex
   if (fromIdx === queueIndex) queueIndex = toIdx;
   else if (fromIdx < queueIndex && toIdx >= queueIndex) queueIndex--;
   else if (fromIdx > queueIndex && toIdx <= queueIndex) queueIndex++;
@@ -1567,14 +1666,8 @@ function playNext() {
 }
 
 function playPrev() {
-  // If >3s into track, restart; otherwise go to prev
-  const elapsed = isPlaying
-    ? Math.min(audioCtx.currentTime - startTime, audioBuffer?.duration || 0)
-    : pauseOffset;
-  if (elapsed > 3 && audioBuffer) {
-    playFrom(0);
-    return;
-  }
+  const elapsed = isPlaying ? Math.min(audioCtx.currentTime - startTime, audioBuffer?.duration || 0) : pauseOffset;
+  if (elapsed > 3 && audioBuffer) { playFrom(0); return; }
   const prev = getPrevIndex();
   if (prev >= 0) playQueueIndex(prev);
 }
@@ -1590,35 +1683,25 @@ function renderQueuePanel() {
   const list = document.getElementById('queue-list');
   const count = document.getElementById('queue-count');
   count.textContent = `${queue.length} track${queue.length !== 1 ? 's' : ''}`;
-  
-  // Highlight queue transport button when queue has items
   const qBtn = document.getElementById('queue-btn-transport');
   if (qBtn) qBtn.classList.toggle('has-queue', queue.length > 0);
-
-  // Update next track label
   const nextIdx = getNextIndex();
   const nextLbl = document.getElementById('next-track-lbl');
   if (nextLbl) {
     if (nextIdx >= 0 && queue[nextIdx]) {
-      const nextName = queue[nextIdx].name.replace(/\.[^.]+$/, '');
-      nextLbl.textContent = `next → ${nextName}`;
+      nextLbl.textContent = `next → ${queue[nextIdx].name.replace(/\.[^.]+$/, '')}`;
       nextLbl.classList.add('show');
-    } else {
-      nextLbl.classList.remove('show');
-    }
+    } else nextLbl.classList.remove('show');
   }
-
   list.innerHTML = '';
   queue.forEach((file, idx) => {
     const item = document.createElement('div');
     item.className = 'queue-item' + (idx === queueIndex ? ' active' : '');
     item.dataset.idx = idx;
     item.draggable = true;
-
     const nameClean = file.name.replace(/\.[^.]+$/, '');
-
     item.innerHTML = `
-      <div class="queue-drag-handle" title="Drag to reorder">⠿</div>
+      <div class="queue-drag-handle" title="Drag">⠿</div>
       <div class="queue-item-info">
         <div class="queue-item-name" title="${file.name}">${nameClean}</div>
         <div class="queue-item-num">${idx === queueIndex ? '▶ now playing' : `#${idx + 1}`}</div>
@@ -1626,61 +1709,23 @@ function renderQueuePanel() {
       ${idx === queueIndex ? '<div class="queue-now-playing">●</div>' : ''}
       <button class="queue-item-remove" data-idx="${idx}" title="Remove">×</button>
     `;
-
-    // Click to play
     item.addEventListener('click', e => {
-      if (e.target.classList.contains('queue-item-remove')) return;
-      if (e.target.classList.contains('queue-drag-handle')) return;
+      if (e.target.classList.contains('queue-item-remove') || e.target.classList.contains('queue-drag-handle')) return;
       playQueueIndex(idx);
     });
-
-    // Remove button
-    item.querySelector('.queue-item-remove').addEventListener('click', e => {
-      e.stopPropagation();
-      removeFromQueue(idx);
-    });
-
-    // Drag-to-reorder
-    let dragSrc = null;
-    item.addEventListener('dragstart', e => {
-      dragSrc = idx;
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', idx);
-    });
+    item.querySelector('.queue-item-remove').addEventListener('click', e => { e.stopPropagation(); removeFromQueue(idx); });
+    item.addEventListener('dragstart', e => { item.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', idx); });
     item.addEventListener('dragend', () => item.classList.remove('dragging'));
-    item.addEventListener('dragover', e => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('drag-over'));
-      item.classList.add('drag-over');
-    });
+    item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; document.querySelectorAll('.queue-item').forEach(el => el.classList.remove('drag-over')); item.classList.add('drag-over'); });
     item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
-    item.addEventListener('drop', e => {
-      e.preventDefault();
-      item.classList.remove('drag-over');
-      const from = parseInt(e.dataTransfer.getData('text/plain'));
-      const to = idx;
-      if (!isNaN(from) && from !== to) moveQueueItem(from, to);
-    });
-
-    // Touch drag (mobile)
-    let touchDragFrom = -1;
-    item.querySelector('.queue-drag-handle').addEventListener('touchstart', e => {
-      touchDragFrom = idx;
-    }, { passive: true });
-
+    item.addEventListener('drop', e => { e.preventDefault(); item.classList.remove('drag-over'); const from = parseInt(e.dataTransfer.getData('text/plain')); if (!isNaN(from) && from !== idx) moveQueueItem(from, idx); });
     list.appendChild(item);
   });
-
-  // Scroll active item into view
   const activeEl = list.querySelector('.queue-item.active');
   if (activeEl) activeEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
-// ═══════════════════════════════════════════════════════
-//  LOAD & PLAY
-// ═══════════════════════════════════════════════════════
+// ── LOAD & PLAY ────────────────────────────────────────
 async function loadAndPlay(file) {
   currentFile = file;
   document.getElementById('drop-screen').classList.add('off');
@@ -1688,11 +1733,7 @@ async function loadAndPlay(file) {
   analysis.classList.remove('off');
   document.getElementById('analysis-status').textContent = 'Decoding audio…';
 
-  // On iOS, AudioContext must be created/resumed inside a user-gesture.
-  // We ensure that here since loadAndPlay is always called from a tap/click.
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
-  }
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
   if (audioCtx.state === 'suspended') await audioCtx.resume();
   if (source) { source.onended = null; try { source.stop(); } catch(e){} }
 
@@ -1702,7 +1743,6 @@ async function loadAndPlay(file) {
 
   const profile = await estimateEnergyProfile(audioBuffer);
   document.getElementById('analysis-status').textContent = 'Reading the vibe…';
-
   const vibe = await analyzeVibe(file.name, profile);
   PALETTE = { ...VIBE_PALETTES[vibe] || VIBE_PALETTES.psychedelic };
 
@@ -1716,57 +1756,36 @@ async function loadAndPlay(file) {
   pill.style.background = PALETTE.pillBg || 'rgba(150,0,255,0.12)';
   pill.style.borderColor = PALETTE.pillColor || 'rgba(200,100,255,0.3)';
 
-  const nameClean = file.name.replace(/\.[^.]+$/, '');
-  document.getElementById('song-lbl').textContent = nameClean;
+  document.getElementById('song-lbl').textContent = file.name.replace(/\.[^.]+$/, '');
   document.getElementById('progress-fill').style.background = PALETTE.pillColor?.replace('0.7', '1') || '#fff';
 
   hueShift = 0; t = 0; peakFlash = 0;
   initAudio();
   playFrom(0);
   if (!animFrame) render();
-  if (currentMode === 'layers') {
-    document.getElementById('tweak-toggle').classList.remove('hidden');
-  }
+  if (currentMode === 'layers') document.getElementById('tweak-toggle').classList.remove('hidden');
   buildPanel();
   renderQueuePanel();
 }
 
-// ── PLAY STATE ─────────────────────────────────────────
 let userPaused = false;
-
-function setPlayBtn(playing) {
-  document.getElementById('play-btn').textContent = playing ? '⏸' : '▶';
-}
+function setPlayBtn(playing) { document.getElementById('play-btn').textContent = playing ? '⏸' : '▶'; }
 
 function playFrom(offset) {
-  if (source) {
-    source.onended = null;
-    try { source.stop(); } catch(e) {}
-    source = null;
-  }
+  if (source) { source.onended = null; try { source.stop(); } catch(e){} source = null; }
   source = audioCtx.createBufferSource();
   source.buffer = audioBuffer;
   source.connect(analyser);
   source.start(0, Math.max(0, offset));
   startTime = audioCtx.currentTime - offset;
-  isPlaying = true;
-  userPaused = false;
+  isPlaying = true; userPaused = false;
   setPlayBtn(true);
   source.onended = () => {
     if (isPlaying && !userPaused) {
-      isPlaying = false;
-      pauseOffset = 0;
-      setPlayBtn(false);
-      // Repeat one: just restart from beginning, no re-decode
-      if (repeatMode === 'one') {
-        setTimeout(() => playFrom(0), 200);
-        return;
-      }
-      // Advance queue (getNextIndex handles repeat-all wraparound)
+      isPlaying = false; pauseOffset = 0; setPlayBtn(false);
+      if (repeatMode === 'one') { setTimeout(() => playFrom(0), 200); return; }
       const next = getNextIndex();
-      if (next >= 0) {
-        setTimeout(() => playQueueIndex(next), 300);
-      }
+      if (next >= 0) setTimeout(() => playQueueIndex(next), 300);
     }
   };
 }
@@ -1776,13 +1795,8 @@ function togglePlay() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
   if (isPlaying) {
     pauseOffset = audioCtx.currentTime - startTime;
-    userPaused = true;
-    isPlaying = false;
-    if (source) {
-      source.onended = null;
-      try { source.stop(); } catch(e) {}
-      source = null;
-    }
+    userPaused = true; isPlaying = false;
+    if (source) { source.onended = null; try { source.stop(); } catch(e){} source = null; }
     setPlayBtn(false);
   } else {
     playFrom(pauseOffset);
@@ -1791,43 +1805,27 @@ function togglePlay() {
 
 function updateProgress() {
   if (!audioBuffer || !audioCtx) return;
-  const elapsed = isPlaying
-    ? Math.min(audioCtx.currentTime - startTime, audioBuffer.duration)
-    : Math.min(pauseOffset, audioBuffer.duration);
+  const elapsed = isPlaying ? Math.min(audioCtx.currentTime - startTime, audioBuffer.duration) : Math.min(pauseOffset, audioBuffer.duration);
   if (!isScrubbing) {
-    const pct = (elapsed / audioBuffer.duration) * 100;
-    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-fill').style.width = (elapsed / audioBuffer.duration * 100) + '%';
   }
   const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
   document.getElementById('time-lbl').textContent = `${fmt(elapsed)} / ${fmt(audioBuffer.duration)}`;
 }
 
 // ── PROGRESS BAR ──────────────────────────────────────
-let isScrubbing = false;
-let scrubWasPlaying = false;
-
+let isScrubbing = false, scrubWasPlaying = false;
 (function() {
-  const wrap  = document.getElementById('progress-wrap');
-  const fill  = document.getElementById('progress-fill');
+  const wrap = document.getElementById('progress-wrap');
+  const fill = document.getElementById('progress-fill');
   const track = document.getElementById('progress-track');
-
-  function getPct(clientX) {
-    const rect = track.getBoundingClientRect();
-    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  }
-
+  function getPct(clientX) { const rect = track.getBoundingClientRect(); return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)); }
   function startScrub(clientX) {
     if (!audioBuffer) return;
-    isScrubbing = true;
-    scrubWasPlaying = isPlaying;
-    wrap.classList.add('scrubbing');
-    if (isPlaying) {
-      userPaused = true; isPlaying = false;
-      if (source) { source.onended = null; try { source.stop(); } catch(e){} source = null; }
-    }
+    isScrubbing = true; scrubWasPlaying = isPlaying; wrap.classList.add('scrubbing');
+    if (isPlaying) { userPaused = true; isPlaying = false; if (source) { source.onended = null; try { source.stop(); } catch(e){} source = null; } }
     applyScrub(clientX);
   }
-
   function applyScrub(clientX) {
     if (!isScrubbing || !audioBuffer) return;
     const pct = getPct(clientX);
@@ -1836,33 +1834,21 @@ let scrubWasPlaying = false;
     const fmt = s => `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
     document.getElementById('time-lbl').textContent = `${fmt(pauseOffset)} / ${fmt(audioBuffer.duration)}`;
   }
-
-  function endScrub() {
-    if (!isScrubbing) return;
-    isScrubbing = false;
-    wrap.classList.remove('scrubbing');
-    if (scrubWasPlaying) playFrom(pauseOffset);
-  }
-
+  function endScrub() { if (!isScrubbing) return; isScrubbing = false; wrap.classList.remove('scrubbing'); if (scrubWasPlaying) playFrom(pauseOffset); }
   wrap.addEventListener('mousedown', e => { e.preventDefault(); startScrub(e.clientX); });
   document.addEventListener('mousemove', e => { if (isScrubbing) applyScrub(e.clientX); });
   document.addEventListener('mouseup', () => endScrub());
-
   wrap.addEventListener('touchstart', e => { e.stopPropagation(); startScrub(e.touches[0].clientX); }, { passive: true });
   document.addEventListener('touchmove', e => { if (isScrubbing) { e.preventDefault(); applyScrub(e.touches[0].clientX); } }, { passive: false });
   document.addEventListener('touchend', () => endScrub());
 })();
 
-// ── VOLUME CONTROL ─────────────────────────────────────
-let currentVolume = 0.8;
-let prevVolume = 0.8;
-let isVolScrubbing = false;
-
+// ── VOLUME ────────────────────────────────────────────
+let currentVolume = 0.8, prevVolume = 0.8, isVolScrubbing = false;
 (function() {
-  const wrap  = document.getElementById('vol-slider-wrap');
-  const fill  = document.getElementById('vol-fill');
-  const icon  = document.getElementById('vol-icon');
-
+  const wrap = document.getElementById('vol-slider-wrap');
+  const fill = document.getElementById('vol-fill');
+  const icon = document.getElementById('vol-icon');
   function setVolume(v) {
     currentVolume = Math.max(0, Math.min(1, v));
     fill.style.width = (currentVolume * 100) + '%';
@@ -1871,69 +1857,44 @@ let isVolScrubbing = false;
     else if (currentVolume < 0.4) icon.textContent = '🔉';
     else icon.textContent = '🔊';
   }
-
-  function getPct(clientX) {
-    const rect = wrap.getBoundingClientRect();
-    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-  }
-
-  icon.addEventListener('click', () => {
-    if (currentVolume > 0) { prevVolume = currentVolume; setVolume(0); }
-    else setVolume(prevVolume || 0.8);
-  });
-
-  wrap.addEventListener('mousedown', e => {
-    e.preventDefault(); isVolScrubbing = true; wrap.classList.add('scrubbing'); setVolume(getPct(e.clientX));
-  });
+  function getPct(clientX) { const rect = wrap.getBoundingClientRect(); return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)); }
+  icon.addEventListener('click', () => { if (currentVolume > 0) { prevVolume = currentVolume; setVolume(0); } else setVolume(prevVolume || 0.8); });
+  wrap.addEventListener('mousedown', e => { e.preventDefault(); isVolScrubbing = true; wrap.classList.add('scrubbing'); setVolume(getPct(e.clientX)); });
   document.addEventListener('mousemove', e => { if (!isVolScrubbing) return; setVolume(getPct(e.clientX)); });
   document.addEventListener('mouseup', () => { if (isVolScrubbing) { isVolScrubbing = false; wrap.classList.remove('scrubbing'); } });
   wrap.addEventListener('touchstart', e => { isVolScrubbing = true; wrap.classList.add('scrubbing'); setVolume(getPct(e.touches[0].clientX)); }, { passive: true });
   document.addEventListener('touchmove', e => { if (!isVolScrubbing) return; setVolume(getPct(e.touches[0].clientX)); }, { passive: true });
   document.addEventListener('touchend', () => { isVolScrubbing = false; wrap.classList.remove('scrubbing'); });
-
   setVolume(0.8);
 })();
 
-// ═══════════════════════════════════════════════════════
-//  UI AUTO-HIDE
-// ═══════════════════════════════════════════════════════
+// ── UI HIDE ────────────────────────────────────────────
 let hideTimer;
-const UI_ELEMENTS = ['ui', 'mode-bar', 'tweak-toggle'];
-
 function showUI() {
-  UI_ELEMENTS.forEach(id => document.getElementById(id)?.classList.remove('hidden'));
+  ['ui', 'mode-bar', 'tweak-toggle'].forEach(id => document.getElementById(id)?.classList.remove('hidden'));
   clearTimeout(hideTimer);
   if (audioBuffer) {
     hideTimer = setTimeout(() => {
       if (isPlaying) {
-        ['ui', 'mode-bar', 'tweak-toggle'].forEach(id =>
-          document.getElementById(id)?.classList.add('hidden'));
+        ['ui', 'mode-bar', 'tweak-toggle'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
         if (!panelOpen) document.getElementById('tweak-panel')?.classList.add('hidden');
       }
     }, 3200);
   }
 }
-
 document.addEventListener('mousemove', showUI);
 document.addEventListener('touchstart', showUI, { passive: true });
 
-// ═══════════════════════════════════════════════════════
-//  EVENTS
-// ═══════════════════════════════════════════════════════
-
-// Desktop: click anywhere on drop-zone opens file picker
-// Mobile: only the explicit button does (avoids double-trigger issues)
+// ── EVENTS ────────────────────────────────────────────
 const isTouchDevice = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
-document.getElementById('drop-zone').addEventListener('click', (e) => {
-  // Don't trigger if a sample button was clicked
-  if (e.target.closest('.sample-btn')) return;
-  // Don't trigger on mobile (mobile-browse-btn handles it)
+document.getElementById('drop-zone').addEventListener('click', e => {
+  if (e.target.closest('.sample-btn') || e.target.closest('#live-btn')) return;
   if (isTouchDevice()) return;
   document.getElementById('file-input').click();
 });
 
-document.getElementById('mobile-browse-btn').addEventListener('click', (e) => {
+document.getElementById('mobile-browse-btn').addEventListener('click', e => {
   e.stopPropagation();
   document.getElementById('file-input').click();
 });
@@ -1942,15 +1903,12 @@ document.getElementById('file-input').addEventListener('change', e => {
   const files = Array.from(e.target.files);
   if (files.length === 0) return;
   homeAnimActive = false;
-  queue = files;
-  queueIndex = 0;
-  shuffleMode = false;
+  queue = files; queueIndex = 0; shuffleMode = false;
   document.getElementById('queue-shuffle-btn').classList.remove('active');
   shuffleOrder = [];
   loadAndPlay(queue[0]);
 });
 
-// Drag and drop (desktop only)
 document.addEventListener('dragover', e => { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag'); });
 document.addEventListener('dragleave', e => { if (!e.relatedTarget) document.getElementById('drop-zone').classList.remove('drag'); });
 document.addEventListener('drop', e => {
@@ -1959,10 +1917,7 @@ document.addEventListener('drop', e => {
   const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|wave|ogg|oga|flac|aac|m4a|mp4|aiff|aif|wma|opus|webm|caf|3gp|amr)$/i));
   if (files.length === 0) return;
   homeAnimActive = false;
-  queue = files;
-  queueIndex = 0;
-  shuffleMode = false;
-  shuffleOrder = [];
+  queue = files; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
   loadAndPlay(queue[0]);
 });
 
@@ -1970,7 +1925,6 @@ document.getElementById('play-btn').addEventListener('click', togglePlay);
 document.getElementById('prev-btn').addEventListener('click', playPrev);
 document.getElementById('next-btn').addEventListener('click', playNext);
 
-// Queue panel controls
 document.getElementById('queue-btn-transport').addEventListener('click', toggleQueuePanel);
 document.getElementById('queue-close-btn').addEventListener('click', () => {
   queuePanelOpen = false;
@@ -1980,40 +1934,24 @@ document.getElementById('queue-close-btn').addEventListener('click', () => {
 document.getElementById('queue-shuffle-btn').addEventListener('click', () => {
   shuffleMode = !shuffleMode;
   document.getElementById('queue-shuffle-btn').classList.toggle('active', shuffleMode);
-  if (shuffleMode) generateShuffleOrder();
-  else shuffleOrder = [];
+  if (shuffleMode) generateShuffleOrder(); else shuffleOrder = [];
 });
-document.getElementById('queue-add-btn').addEventListener('click', () => {
-  document.getElementById('queue-file-input').click();
-});
+document.getElementById('queue-add-btn').addEventListener('click', () => document.getElementById('queue-file-input').click());
 document.getElementById('queue-file-input').addEventListener('change', e => {
-  addFilesToQueue(e.target.files);
-  e.target.value = '';
-  // If nothing playing yet, start from first item
-  if (queueIndex < 0 && queue.length > 0) {
-    queueIndex = 0;
-    loadAndPlay(queue[0]);
-  }
+  addFilesToQueue(e.target.files); e.target.value = '';
+  if (queueIndex < 0 && queue.length > 0) { queueIndex = 0; loadAndPlay(queue[0]); }
 });
 document.getElementById('queue-clear-btn').addEventListener('click', () => {
-  // Keep currently playing, clear rest
-  if (queueIndex >= 0 && queue[queueIndex]) {
-    const cur = queue[queueIndex];
-    queue = [cur];
-    queueIndex = 0;
-  } else {
-    queue = []; queueIndex = -1;
-  }
-  shuffleOrder = [];
-  renderQueuePanel();
+  if (queueIndex >= 0 && queue[queueIndex]) { const cur = queue[queueIndex]; queue = [cur]; queueIndex = 0; }
+  else { queue = []; queueIndex = -1; }
+  shuffleOrder = []; renderQueuePanel();
 });
 
 document.getElementById('back-btn').addEventListener('click', () => {
   if (source) { try { source.stop(); } catch(e){} }
   isPlaying = false; audioBuffer = null; pauseOffset = 0;
   if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-  glowCtx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); glowCtx.clearRect(0, 0, W, H);
   document.getElementById('ui').classList.add('hidden');
   document.getElementById('mode-bar').classList.add('hidden');
   document.getElementById('analysis-screen').classList.add('off');
@@ -2021,7 +1959,6 @@ document.getElementById('back-btn').addEventListener('click', () => {
   document.getElementById('file-input').value = '';
   document.getElementById('queue-panel').classList.remove('open');
   queuePanelOpen = false;
-  // Clear queue state
   queue = []; queueIndex = -1; shuffleOrder = [];
   hueShift = 0; t = 0; peakFlash = 0;
   homeAnimActive = true;
@@ -2036,7 +1973,6 @@ document.addEventListener('fullscreenchange', () => {
   document.getElementById('fs-btn').textContent = document.fullscreenElement ? '✕' : '⛶';
 });
 
-// Repeat button: cycles none → one → all
 document.getElementById('repeat-btn').addEventListener('click', () => {
   if (repeatMode === 'none') repeatMode = 'one';
   else if (repeatMode === 'one') repeatMode = 'all';
@@ -2054,8 +1990,7 @@ document.querySelectorAll('.m-btn').forEach(btn => {
     document.querySelectorAll('.m-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     currentMode = btn.dataset.mode;
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-    glowCtx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); glowCtx.clearRect(0, 0, W, H);
     t = 0; hueShift = 0;
     const isLayers = currentMode === 'layers';
     document.getElementById('tweak-toggle').classList.toggle('hidden', !isLayers);
@@ -2069,10 +2004,11 @@ document.getElementById('tweak-toggle').addEventListener('click', () => {
 });
 
 document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-  if (e.code === 'KeyF') document.querySelector('[data-mode="flowfield"]').click();
-  if (e.code === 'KeyL') document.querySelector('[data-mode="layers"]').click();
-  if (e.code === 'KeyW') document.querySelector('[data-mode="warp"]').click();
+  if (e.code === 'KeyF') document.querySelector('[data-mode="flowfield"]')?.click();
+  if (e.code === 'KeyL') document.querySelector('[data-mode="layers"]')?.click();
+  if (e.code === 'KeyW') document.querySelector('[data-mode="warp"]')?.click();
   if (e.code === 'ArrowRight' && e.shiftKey) { e.preventDefault(); playNext(); }
   if (e.code === 'ArrowLeft' && e.shiftKey) { e.preventDefault(); playPrev(); }
   if (e.code === 'KeyQ') toggleQueuePanel();
@@ -2081,10 +2017,13 @@ document.addEventListener('keydown', e => {
     document.getElementById('tweak-panel').classList.toggle('hidden', !panelOpen);
     document.getElementById('tweak-toggle').classList.remove('hidden');
   }
-  if (e.key === 'Escape' && document.fullscreenElement) document.exitFullscreen();
+  if (e.key === 'Escape') {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (isLiveMode) stopLiveMode();
+  }
 });
 
-// ── SECRET TRACKS UNLOCK (triple-click logo) ──────────
+// ── SECRET TRACKS ──────────────────────────────────────
 (function() {
   let clicks = 0, timer = null;
   const logo = document.getElementById('logo-click-target');
@@ -2093,44 +2032,29 @@ document.addEventListener('keydown', e => {
     clicks++;
     if (clicks <= 3) dots[clicks - 1].classList.add('lit');
     if (timer) clearTimeout(timer);
-    if (clicks >= 3) {
-      document.getElementById('secret-tracks').classList.add('revealed');
-      clicks = 0; dots.forEach(d => d.classList.remove('lit')); return;
-    }
+    if (clicks >= 3) { document.getElementById('secret-tracks').classList.add('revealed'); clicks = 0; dots.forEach(d => d.classList.remove('lit')); return; }
     timer = setTimeout(() => { clicks = 0; dots.forEach(d => d.classList.remove('lit')); }, 1200);
   });
 })();
 
 // ── SAMPLE TRACKS ─────────────────────────────────────
 document.querySelectorAll('.sample-btn').forEach(btn => {
-  // Store original name once at setup time — so it survives back-button navigation
   const nameEl = btn.querySelector('.sample-name');
   btn.dataset.origName = nameEl.textContent;
-
   btn.addEventListener('click', async e => {
     e.stopPropagation();
-    const src      = btn.dataset.src;
-    const name     = btn.dataset.name;
-    const origName = btn.dataset.origName;
-    nameEl.textContent = 'Loading…';
-    btn.style.pointerEvents = 'none';
+    const src = btn.dataset.src, name = btn.dataset.name, origName = btn.dataset.origName;
+    nameEl.textContent = 'Loading…'; btn.style.pointerEvents = 'none';
     try {
       const res = await fetch(src);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       const file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
       homeAnimActive = false;
-      // ✅ Restore button state BEFORE handing off to player —
-      //    so hitting back always finds the button in its clean state.
-      nameEl.textContent = origName;
-      btn.style.pointerEvents = '';
-      // Initialize queue with this single sample track
-      queue = [file];
-      queueIndex = 0;
-      shuffleMode = false;
-      shuffleOrder = [];
+      nameEl.textContent = origName; btn.style.pointerEvents = '';
+      queue = [file]; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
       loadAndPlay(file);
-    } catch (err) {
+    } catch(err) {
       console.error('Sample load failed:', err);
       nameEl.textContent = 'Failed';
       setTimeout(() => { nameEl.textContent = origName; btn.style.pointerEvents = ''; }, 2000);
@@ -2138,42 +2062,30 @@ document.querySelectorAll('.sample-btn').forEach(btn => {
   });
 });
 
-// ═══════════════════════════════════════════════════════
-//  HOME SCREEN ANIMATION  (DPR-aware)
-// ═══════════════════════════════════════════════════════
+// ── HOME ANIM ─────────────────────────────────────────
 let homeAnimActive  = true;
 let homeAnimRunning = false;
 
 function startHomeAnim() {
   const hc = document.getElementById('home-canvas');
-  const lw = hc.offsetWidth  || W;
-  const lh = hc.offsetHeight || H;
-  hc.width  = Math.round(lw * DPR);
-  hc.height = Math.round(lh * DPR);
-  hc.style.width  = lw + 'px';
-  hc.style.height = lh + 'px';
+  const lw = hc.offsetWidth || W, lh = hc.offsetHeight || H;
+  hc.width  = Math.round(lw * DPR); hc.height = Math.round(lh * DPR);
+  hc.style.width = lw + 'px'; hc.style.height = lh + 'px';
   const hx = hc.getContext('2d');
-  hx.setTransform(DPR, 0, 0, DPR, 0, 0);  // draw in logical px
+  hx.setTransform(DPR, 0, 0, DPR, 0, 0);
   let hW = lw, hH = lh;
 
   window.addEventListener('resize', () => {
-    hW = hc.offsetWidth || W;
-    hH = hc.offsetHeight || H;
-    hc.width  = Math.round(hW * DPR);
-    hc.height = Math.round(hH * DPR);
-    hc.style.width  = hW + 'px';
-    hc.style.height = hH + 'px';
+    hW = hc.offsetWidth || W; hH = hc.offsetHeight || H;
+    hc.width = Math.round(hW * DPR); hc.height = Math.round(hH * DPR);
+    hc.style.width = hW + 'px'; hc.style.height = hH + 'px';
     hx.setTransform(DPR, 0, 0, DPR, 0, 0);
   });
 
   let mx = 0.5, my = 0.5, smx = 0.5, smy = 0.5;
   const onMouseMove = e => { mx = e.clientX / window.innerWidth; my = e.clientY / window.innerHeight; };
   document.addEventListener('mousemove', onMouseMove);
-  // Touch parallax for home canvas
-  const onTouch = e => {
-    mx = e.touches[0].clientX / window.innerWidth;
-    my = e.touches[0].clientY / window.innerHeight;
-  };
+  const onTouch = e => { mx = e.touches[0].clientX / window.innerWidth; my = e.touches[0].clientY / window.innerHeight; };
   document.addEventListener('touchmove', onTouch, { passive: true });
 
   const DOT_COLS = 28, DOT_ROWS = 20;
@@ -2190,21 +2102,16 @@ function startHomeAnim() {
     }
     requestAnimationFrame(drawHome);
     hTick += 0.008;
-    smx += (mx - smx) * 0.04;
-    smy += (my - smy) * 0.04;
+    smx += (mx - smx) * 0.04; smy += (my - smy) * 0.04;
     hx.clearRect(0, 0, hW, hH);
-
     const gW = hW * 0.92, gH = hH * 0.92;
     const cW = gW / DOT_COLS, cH = gH / DOT_ROWS;
     const mgx = (hW - gW) * 0.5, mgy = (hH - gH) * 0.5;
-
     for (let row = 0; row < DOT_ROWS; row++) {
       for (let col = 0; col < DOT_COLS; col++) {
-        const cx = mgx + col * cW + cW * 0.5;
-        const cy = mgy + row * cH + cH * 0.5;
-        const dx = cx / hW - smx;
-        const dy = cy / hH - smy;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const cx = mgx + col * cW + cW * 0.5, cy = mgy + row * cH + cH * 0.5;
+        const dx = cx / hW - smx, dy = cy / hH - smy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
         const influence = Math.max(0, 1 - dist * 2.8);
         const n = noise2(cx * 0.003 + hTick * 0.4, cy * 0.003 - hTick * 0.2);
         const mouseAngle = Math.atan2(dy, dx) + Math.PI;
@@ -2216,17 +2123,9 @@ function startHomeAnim() {
         const hue = 200 + influence * 80;
         const sat = 30 + influence * 60;
         const lit = 60 + influence * 30;
-
-        hx.save();
-        hx.translate(cx, cy);
-        hx.rotate(angle);
-        hx.beginPath();
-        hx.moveTo(-cW * 0.28, 0);
-        hx.lineTo( cW * 0.28, 0);
-        hx.strokeStyle = `hsla(${hue},${sat}%,${lit}%,${alpha})`;
-        hx.lineWidth = r;
-        hx.lineCap = 'butt';
-        hx.stroke();
+        hx.save(); hx.translate(cx, cy); hx.rotate(angle);
+        hx.beginPath(); hx.moveTo(-cW * 0.28, 0); hx.lineTo(cW * 0.28, 0);
+        hx.strokeStyle = `hsla(${hue},${sat}%,${lit}%,${alpha})`; hx.lineWidth = r; hx.lineCap = 'butt'; hx.stroke();
         hx.restore();
       }
     }
@@ -2237,19 +2136,13 @@ function startHomeAnim() {
 const dropObserver = new MutationObserver(() => {
   const dropScreen = document.getElementById('drop-screen');
   if (!dropScreen.classList.contains('off') && !homeAnimRunning) {
-    homeAnimActive = true;
-    startHomeAnim();
+    homeAnimActive = true; startHomeAnim();
   }
 });
 dropObserver.observe(document.getElementById('drop-screen'), { attributes: true, attributeFilter: ['class'] });
 
 startHomeAnim();
-
-// ═══════════════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════════════
-ctx.fillStyle = '#000';
-ctx.fillRect(0, 0, W, H);
+ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
 render();
 </script>
 </body>
