@@ -187,118 +187,104 @@ html, body {
 }
 @keyframes scan { to { left: 100%; } }
 
-/* ── LIVE MODE SCREEN ── */
-#live-screen {
-  gap: 0;
+/* ── LIVE UI (bottom bar, shown over canvas like #ui) ── */
+#live-ui {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  padding: clamp(12px, 2vw, 18px) clamp(14px, 3vw, 32px) clamp(14px, 3vw, 20px);
+  padding-bottom: max(clamp(14px, 3vw, 20px), env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, rgba(0,0,0,0.92));
+  z-index: 10; transition: opacity 0.6s; display: none;
 }
-#live-screen .live-header {
-  font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase;
-  color: rgba(255,255,255,0.25); margin-bottom: 32px; text-align: center;
+#live-ui.visible { display: block; }
+#live-ui.hidden { opacity: 0; pointer-events: none; }
+
+/* top row: back btn + mic indicator + vibe pill + fs btn */
+#live-meta-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
 }
 
-/* pulsing mic ring */
-#mic-ring {
-  width: 80px; height: 80px; border-radius: 50%;
-  border: 1px solid rgba(180,120,255,0.3);
-  display: flex; align-items: center; justify-content: center;
-  position: relative; margin-bottom: 28px;
-  transition: border-color 0.15s;
+/* pulsing mic dot inline */
+#mic-indicator {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
 }
-#mic-ring::before {
-  content: '';
-  position: absolute; inset: -8px;
-  border-radius: 50%; border: 1px solid rgba(180,120,255,0.1);
-  animation: mic-pulse 2s ease-in-out infinite;
+#mic-dot-live {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: rgba(180,120,255,0.4);
+  transition: background 0.1s;
+  flex-shrink: 0;
 }
-#mic-ring::after {
-  content: '';
-  position: absolute; inset: -18px;
-  border-radius: 50%; border: 1px solid rgba(180,120,255,0.05);
-  animation: mic-pulse 2s ease-in-out infinite 0.4s;
+#mic-dot-live.hot { background: rgba(180,120,255,1); box-shadow: 0 0 6px rgba(180,120,255,0.8); }
+#mic-label {
+  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.25);
 }
-@keyframes mic-pulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
-}
-#mic-ring.hot { border-color: rgba(180,120,255,0.9); }
-#mic-ring.hot::before { border-color: rgba(180,120,255,0.35); }
-#mic-ring.hot::after { border-color: rgba(180,120,255,0.15); }
-#mic-glyph { font-size: 28px; opacity: 0.6; user-select: none; }
 
 #live-vibe-pill {
-  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
-  padding: 4px 12px; border-radius: 2px; border: 1px solid rgba(180,120,255,0.3);
+  font-size: clamp(9px, 2vw, 10px); letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: 2px; border: 1px solid rgba(180,120,255,0.3);
   color: rgba(180,120,255,0.7); background: rgba(180,120,255,0.06);
-  margin-bottom: 24px; min-width: 80px; text-align: center;
-  transition: all 0.8s;
+  white-space: nowrap; font-weight: 400; transition: all 0.8s;
 }
 
-/* noise reduction slider */
-#nr-panel {
-  width: min(300px, 88vw);
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08); border-radius: 2px;
-  padding: 16px 20px; margin-bottom: 20px;
+/* level + NR row */
+#live-controls-row {
+  display: flex; align-items: center; gap: clamp(7px, 1.5vw, 14px);
 }
-#nr-panel .nr-title {
-  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
-  color: rgba(255,255,255,0.22); margin-bottom: 12px;
-}
-#nr-row { display: flex; align-items: center; gap: 10px; }
-#nr-lbl { font-size: 9px; color: rgba(255,255,255,0.35); letter-spacing: 0.06em; width: 52px; }
-#nr-slider-wrap { flex: 1; position: relative; height: 20px; display: flex; align-items: center; cursor: pointer; }
-#nr-track { position: absolute; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.12); border-radius: 1px; pointer-events: none; }
-#nr-fill { height: 100%; border-radius: 1px; background: rgba(180,120,255,0.6); pointer-events: none; width: 30%; }
-#nr-handle {
-  position: absolute; top: 50%; transform: translateY(-50%);
-  width: 10px; height: 10px; border-radius: 50%;
-  background: rgba(180,120,255,0.9); pointer-events: none; left: 30%;
-  margin-left: -5px;
-}
-#nr-val { font-size: 9px; color: rgba(255,255,255,0.4); width: 28px; text-align: right; }
-#nr-desc { font-size: 9px; color: rgba(255,255,255,0.18); letter-spacing: 0.04em; margin-top: 8px; line-height: 1.6; }
 
-/* live mode bottom controls */
-#live-controls {
-  display: flex; gap: 10px; align-items: center;
-}
-#live-stop-btn {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.15);
-  color: rgba(255,255,255,0.5); font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
-  padding: 10px 20px; border-radius: 2px; cursor: pointer;
-  transition: all 0.2s; -webkit-tap-highlight-color: transparent;
-}
-#live-stop-btn:hover { border-color: rgba(255,100,100,0.5); color: rgba(255,120,120,0.8); background: rgba(255,50,50,0.05); }
-
-#live-mode-selector {
-  display: flex; gap: 2px;
-  background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 3px; padding: 3px;
-}
-.lm-btn {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase;
-  background: none; border: none; color: rgba(255,255,255,0.3);
-  cursor: pointer; padding: 5px 10px; border-radius: 2px;
-  transition: color 0.2s, background 0.2s;
-  -webkit-tap-highlight-color: transparent;
-}
-.lm-btn:hover { color: rgba(255,255,255,0.65); }
-.lm-btn.active { color: #fff; background: rgba(255,255,255,0.1); }
-
-/* level meter bar */
+/* level meter */
 #level-bar {
-  width: min(300px, 88vw); height: 3px;
-  background: rgba(255,255,255,0.06); border-radius: 2px;
-  margin-bottom: 20px; overflow: hidden;
+  width: 48px; height: 3px; flex-shrink: 0;
+  background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;
 }
 #level-fill {
   height: 100%; width: 0%; border-radius: 2px;
-  background: rgba(180,120,255,0.7);
+  background: rgba(180,120,255,0.8);
   transition: width 0.05s linear;
 }
+
+/* NR inline slider */
+#nr-label {
+  font-size: 9px; letter-spacing: 0.1em; color: rgba(255,255,255,0.3);
+  white-space: nowrap; flex-shrink: 0;
+}
+#nr-slider-wrap {
+  flex: 1; height: 24px;
+  display: flex; align-items: center;
+  cursor: pointer; position: relative; user-select: none;
+  touch-action: none; min-width: 60px; max-width: 160px;
+}
+#nr-track { position: absolute; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.12); border-radius: 1px; pointer-events: none; transition: height 0.12s; }
+#nr-slider-wrap:hover #nr-track { height: 4px; }
+#nr-fill { height: 100%; border-radius: 1px; background: rgba(180,120,255,0.6); pointer-events: none; width: 30%; }
+#nr-handle {
+  position: absolute; top: 50%; transform: translateY(-50%) scale(0);
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(180,120,255,0.9); pointer-events: none;
+  left: 30%; margin-left: -5px; transition: transform 0.12s;
+}
+#nr-slider-wrap:hover #nr-handle,
+#nr-slider-wrap.scrubbing #nr-handle { transform: translateY(-50%) scale(1); }
+#nr-val { font-size: 9px; color: rgba(255,255,255,0.35); width: 28px; text-align: right; flex-shrink: 0; }
+
+#live-stop-btn {
+  background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.28);
+  color: rgba(255,255,255,0.75); font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: 0.05em;
+  width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 2px; cursor: pointer; flex-shrink: 0;
+  transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+}
+#live-stop-btn:hover { border-color: rgba(255,100,100,0.6); color: rgba(255,120,120,0.9); background: rgba(255,30,30,0.08); }
+#live-fs-btn {
+  background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.28);
+  color: rgba(255,255,255,0.75); font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px);
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 2px; cursor: pointer; flex-shrink: 0;
+  transition: all 0.2s; -webkit-tap-highlight-color: transparent;
+}
+#live-fs-btn:hover { border-color: rgba(255,255,255,0.65); color: #fff; background: rgba(255,255,255,0.1); }
 
 canvas#canvas {
   position: fixed; top: 0; left: 0;
@@ -702,37 +688,30 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   <div id="analysis-status">Analyzing audio fingerprint…</div>
 </div>
 
-<!-- LIVE MODE SCREEN -->
-<div class="screen off" id="live-screen">
-  <div class="live-header">Live input · mic active</div>
-  <div id="mic-ring">
-    <span id="mic-glyph">◎</span>
-  </div>
-  <div id="live-vibe-pill">listening…</div>
-  <div id="level-bar"><div id="level-fill"></div></div>
-  <div id="nr-panel">
-    <div class="nr-title">Noise reduction</div>
-    <div id="nr-row">
-      <div id="nr-lbl">Amount</div>
-      <div id="nr-slider-wrap">
-        <div id="nr-track"><div id="nr-fill"></div></div>
-        <div id="nr-handle"></div>
-      </div>
-      <div id="nr-val">30%</div>
+<!-- LIVE UI (bottom bar, shown over canvas in live mode) -->
+<div id="live-ui">
+  <div id="live-meta-row">
+    <button class="t-btn" id="live-stop-btn" title="Stop mic (Esc)">←</button>
+    <div id="mic-indicator">
+      <div id="mic-dot-live"></div>
+      <div id="mic-label">live</div>
     </div>
-    <div id="nr-desc">Attenuates steady-state background noise.<br>Higher = more reduction, may thin the sound.</div>
+    <div id="level-bar"><div id="level-fill"></div></div>
+    <div id="live-vibe-pill">listening…</div>
+    <div style="flex:1"></div>
+    <button class="t-btn icon-btn" id="live-fs-btn" title="Fullscreen">⛶</button>
   </div>
-  <div id="live-controls">
-    <div id="live-mode-selector">
-      <button class="lm-btn active" data-mode="flowfield">Flow</button>
-      <button class="lm-btn" data-mode="layers">Layers</button>
-      <button class="lm-btn" data-mode="warp">Warp</button>
+  <div id="live-controls-row">
+    <div id="nr-label">Noise reduction</div>
+    <div id="nr-slider-wrap">
+      <div id="nr-track"><div id="nr-fill"></div></div>
+      <div id="nr-handle"></div>
     </div>
-    <button id="live-stop-btn">Stop mic</button>
+    <div id="nr-val">30%</div>
   </div>
 </div>
 
-<!-- MODE BAR (file mode only) -->
+<!-- MODE BAR (shared by both file and live mode) -->
 <div id="mode-bar" class="hidden">
   <button class="m-btn active" data-mode="flowfield">Flow</button>
   <button class="m-btn" data-mode="layers">Layers</button>
@@ -1366,8 +1345,8 @@ function render() {
     const rmsLevel = Math.sqrt(rmsSum / freqData.length) / 255;
     document.getElementById('level-fill').style.width = Math.min(100, rmsLevel * 280) + '%';
 
-    // mic ring pulse
-    document.getElementById('mic-ring').classList.toggle('hot', rmsLevel > 0.08);
+    // mic dot pulse
+    document.getElementById('mic-dot-live').classList.toggle('hot', rmsLevel > 0.08);
 
     const raw = getBands();
     smoothBands(raw);
@@ -1519,9 +1498,15 @@ async function startLiveMode() {
   PALETTE = { ...VIBE_PALETTES.psychedelic };
   liveModeViz = 'flowfield';
 
-  // Switch screens
+  // Sync mode bar to flowfield
+  document.querySelectorAll('.m-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === 'flowfield');
+  });
+
+  // Show canvas + live UI
   document.getElementById('drop-screen').classList.add('off');
-  document.getElementById('live-screen').classList.remove('off');
+  document.getElementById('live-ui').classList.add('visible');
+  document.getElementById('mode-bar').classList.remove('hidden');
 
   hueShift = 0; t = 0; peakFlash = 0;
   if (!animFrame) render();
@@ -1536,10 +1521,11 @@ function stopLiveMode() {
   if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
   glowCtx.clearRect(0, 0, W, H);
-  document.getElementById('live-screen').classList.add('off');
+  document.getElementById('live-ui').classList.remove('visible');
+  document.getElementById('mode-bar').classList.add('hidden');
   document.getElementById('drop-screen').classList.remove('off');
   document.getElementById('level-fill').style.width = '0%';
-  document.getElementById('mic-ring').classList.remove('hot');
+  document.getElementById('mic-dot-live').classList.remove('hot');
   document.getElementById('live-vibe-pill').textContent = 'listening…';
   homeAnimActive = true;
   if (!homeAnimRunning) startHomeAnim();
@@ -1576,20 +1562,12 @@ function stopLiveMode() {
   setNR(0.30);
 })();
 
-// ── LIVE MODE SELECTOR ────────────────────────────────
-document.querySelectorAll('.lm-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.lm-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    liveModeViz = btn.dataset.mode;
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
-    glowCtx.clearRect(0, 0, W, H);
-    t = 0; hueShift = 0;
-  });
-});
-
 document.getElementById('live-stop-btn').addEventListener('click', stopLiveMode);
 document.getElementById('live-btn').addEventListener('click', startLiveMode);
+document.getElementById('live-fs-btn').addEventListener('click', () => {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+});
 
 // ── QUEUE ──────────────────────────────────────────────
 function generateShuffleOrder() {
@@ -1871,13 +1849,23 @@ let currentVolume = 0.8, prevVolume = 0.8, isVolScrubbing = false;
 // ── UI HIDE ────────────────────────────────────────────
 let hideTimer;
 function showUI() {
-  ['ui', 'mode-bar', 'tweak-toggle'].forEach(id => document.getElementById(id)?.classList.remove('hidden'));
+  if (isLiveMode) {
+    document.getElementById('live-ui')?.classList.remove('hidden');
+    document.getElementById('mode-bar')?.classList.remove('hidden');
+  } else {
+    ['ui', 'mode-bar', 'tweak-toggle'].forEach(id => document.getElementById(id)?.classList.remove('hidden'));
+  }
   clearTimeout(hideTimer);
-  if (audioBuffer) {
+  if (audioBuffer || isLiveMode) {
     hideTimer = setTimeout(() => {
-      if (isPlaying) {
-        ['ui', 'mode-bar', 'tweak-toggle'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
-        if (!panelOpen) document.getElementById('tweak-panel')?.classList.add('hidden');
+      if (isPlaying || isLiveMode) {
+        if (isLiveMode) {
+          document.getElementById('live-ui')?.classList.add('hidden');
+          document.getElementById('mode-bar')?.classList.add('hidden');
+        } else {
+          ['ui', 'mode-bar', 'tweak-toggle'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+          if (!panelOpen) document.getElementById('tweak-panel')?.classList.add('hidden');
+        }
       }
     }, 3200);
   }
@@ -1989,12 +1977,19 @@ document.querySelectorAll('.m-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.m-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    currentMode = btn.dataset.mode;
+    const mode = btn.dataset.mode;
+    if (isLiveMode) {
+      liveModeViz = mode;
+    } else {
+      currentMode = mode;
+    }
     ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); glowCtx.clearRect(0, 0, W, H);
     t = 0; hueShift = 0;
-    const isLayers = currentMode === 'layers';
-    document.getElementById('tweak-toggle').classList.toggle('hidden', !isLayers);
-    if (!isLayers) { panelOpen = false; document.getElementById('tweak-panel').classList.add('hidden'); }
+    const isLayers = mode === 'layers';
+    if (!isLiveMode) {
+      document.getElementById('tweak-toggle').classList.toggle('hidden', !isLayers);
+      if (!isLayers) { panelOpen = false; document.getElementById('tweak-panel').classList.add('hidden'); }
+    }
   });
 });
 
