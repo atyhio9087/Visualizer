@@ -193,10 +193,11 @@ html, body {
   padding: clamp(12px, 2vw, 18px) clamp(14px, 3vw, 32px) clamp(14px, 3vw, 20px);
   padding-bottom: max(clamp(14px, 3vw, 20px), env(safe-area-inset-bottom));
   background: linear-gradient(transparent, rgba(0,0,0,0.92));
-  z-index: 10; transition: opacity 0.6s; display: none;
+  z-index: 10; transition: opacity 0.6s;
+  display: none; /* hidden until live mode starts */
 }
-#live-ui.visible { display: block; }
-#live-ui.hidden { opacity: 0; pointer-events: none; }
+#live-ui.visible { display: block; opacity: 1; pointer-events: auto; }
+#live-ui.visible.hidden { opacity: 0; pointer-events: none; }
 
 /* top row: back btn + mic indicator + vibe pill + fs btn */
 #live-meta-row {
@@ -1503,7 +1504,10 @@ async function startLiveMode() {
     b.classList.toggle('active', b.dataset.mode === 'flowfield');
   });
 
-  // Show canvas + live UI
+  // Hide file-mode UI, show live UI
+  document.getElementById('ui').classList.add('hidden');
+  document.getElementById('tweak-toggle').classList.add('hidden');
+  document.getElementById('tweak-panel').classList.add('hidden');
   document.getElementById('drop-screen').classList.add('off');
   document.getElementById('live-ui').classList.add('visible');
   document.getElementById('mode-bar').classList.remove('hidden');
@@ -1523,6 +1527,9 @@ function stopLiveMode() {
   glowCtx.clearRect(0, 0, W, H);
   document.getElementById('live-ui').classList.remove('visible');
   document.getElementById('mode-bar').classList.add('hidden');
+  document.getElementById('tweak-toggle').classList.add('hidden');
+  document.getElementById('tweak-panel').classList.add('hidden');
+  panelOpen = false;
   document.getElementById('drop-screen').classList.remove('off');
   document.getElementById('level-fill').style.width = '0%';
   document.getElementById('mic-dot-live').classList.remove('hot');
@@ -1725,8 +1732,18 @@ async function loadAndPlay(file) {
   PALETTE = { ...VIBE_PALETTES[vibe] || VIBE_PALETTES.psychedelic };
 
   analysis.classList.add('off');
+  // Ensure live mode UI is fully gone
+  document.getElementById('live-ui').classList.remove('visible');
   document.getElementById('ui').classList.remove('hidden');
   document.getElementById('mode-bar').classList.remove('hidden');
+  // Sync mode bar to currentMode
+  document.querySelectorAll('.m-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === currentMode);
+  });
+  // Tweak toggle only visible for layers mode
+  const tweakToggle = document.getElementById('tweak-toggle');
+  if (currentMode === 'layers') tweakToggle.classList.remove('hidden');
+  else tweakToggle.classList.add('hidden');
 
   const pill = document.getElementById('vibe-pill');
   pill.textContent = PALETTE.label || vibe;
@@ -1741,7 +1758,6 @@ async function loadAndPlay(file) {
   initAudio();
   playFrom(0);
   if (!animFrame) render();
-  if (currentMode === 'layers') document.getElementById('tweak-toggle').classList.remove('hidden');
   buildPanel();
   renderQueuePanel();
 }
@@ -1849,23 +1865,26 @@ let currentVolume = 0.8, prevVolume = 0.8, isVolScrubbing = false;
 // ── UI HIDE ────────────────────────────────────────────
 let hideTimer;
 function showUI() {
-  if (isLiveMode) {
-    document.getElementById('live-ui')?.classList.remove('hidden');
-    document.getElementById('mode-bar')?.classList.remove('hidden');
-  } else {
-    ['ui', 'mode-bar', 'tweak-toggle'].forEach(id => document.getElementById(id)?.classList.remove('hidden'));
-  }
   clearTimeout(hideTimer);
-  if (audioBuffer || isLiveMode) {
+  if (isLiveMode) {
+    document.getElementById('live-ui').classList.remove('hidden');
+    document.getElementById('mode-bar').classList.remove('hidden');
     hideTimer = setTimeout(() => {
-      if (isPlaying || isLiveMode) {
-        if (isLiveMode) {
-          document.getElementById('live-ui')?.classList.add('hidden');
-          document.getElementById('mode-bar')?.classList.add('hidden');
-        } else {
-          ['ui', 'mode-bar', 'tweak-toggle'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
-          if (!panelOpen) document.getElementById('tweak-panel')?.classList.add('hidden');
-        }
+      if (isLiveMode) {
+        document.getElementById('live-ui').classList.add('hidden');
+        document.getElementById('mode-bar').classList.add('hidden');
+      }
+    }, 3200);
+  } else if (audioBuffer) {
+    document.getElementById('ui').classList.remove('hidden');
+    document.getElementById('mode-bar').classList.remove('hidden');
+    if (currentMode === 'layers') document.getElementById('tweak-toggle').classList.remove('hidden');
+    hideTimer = setTimeout(() => {
+      if (isPlaying) {
+        document.getElementById('ui').classList.add('hidden');
+        document.getElementById('mode-bar').classList.add('hidden');
+        document.getElementById('tweak-toggle').classList.add('hidden');
+        if (!panelOpen) document.getElementById('tweak-panel').classList.add('hidden');
       }
     }, 3200);
   }
@@ -1942,6 +1961,9 @@ document.getElementById('back-btn').addEventListener('click', () => {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); glowCtx.clearRect(0, 0, W, H);
   document.getElementById('ui').classList.add('hidden');
   document.getElementById('mode-bar').classList.add('hidden');
+  document.getElementById('tweak-toggle').classList.add('hidden');
+  document.getElementById('tweak-panel').classList.add('hidden');
+  panelOpen = false;
   document.getElementById('analysis-screen').classList.add('off');
   document.getElementById('drop-screen').classList.remove('off');
   document.getElementById('file-input').value = '';
@@ -1982,14 +2004,13 @@ document.querySelectorAll('.m-btn').forEach(btn => {
       liveModeViz = mode;
     } else {
       currentMode = mode;
-    }
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); glowCtx.clearRect(0, 0, W, H);
-    t = 0; hueShift = 0;
-    const isLayers = mode === 'layers';
-    if (!isLiveMode) {
+      // tweak panel only for layers in file mode
+      const isLayers = mode === 'layers';
       document.getElementById('tweak-toggle').classList.toggle('hidden', !isLayers);
       if (!isLayers) { panelOpen = false; document.getElementById('tweak-panel').classList.add('hidden'); }
     }
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); glowCtx.clearRect(0, 0, W, H);
+    t = 0; hueShift = 0;
   });
 });
 
