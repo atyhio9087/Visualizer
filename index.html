@@ -28,24 +28,43 @@ html, body {
   letter-spacing: 0.18em; color: rgba(255,255,255,0.9);
   text-shadow: 0 0 12px rgba(255,255,255,0.2);
   text-transform: uppercase; margin-bottom: 40px;
+  flex-shrink: 0;
 }
+
+/* FIX 1: scrollable drop zone */
 #drop-zone {
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 2px;
-  width: min(480px, 92vw);
-  padding: clamp(28px, 6vw, 64px) clamp(20px, 5vw, 48px) clamp(20px, 4vw, 40px);
+  width: 100%;
+  /* Cap height so it never overflows the viewport */
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: clamp(20px, 4vw, 48px) clamp(20px, 5vw, 48px) clamp(16px, 3vw, 32px);
   text-align: center;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
   position: relative;
+  /* Custom scrollbar — subtle */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.12) transparent;
 }
+#drop-zone::-webkit-scrollbar { width: 3px; }
+#drop-zone::-webkit-scrollbar-track { background: transparent; }
+#drop-zone::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
 #drop-zone:hover, #drop-zone.drag { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.02); }
-#drop-zone::before {
+/* Gradient on a non-scrolling wrapper so it always spans the full visible box */
+#drop-zone-wrap {
+  position: relative;
+  width: min(480px, 92vw);
+}
+#drop-zone-wrap::before {
   content: '';
   position: absolute; inset: -1px;
   border-radius: 2px;
   background: linear-gradient(135deg, rgba(255,255,255,0.06), transparent 50%, rgba(255,255,255,0.03));
   pointer-events: none;
+  z-index: 1;
 }
 .drop-glyph {
   font-size: clamp(20px, 5vw, 32px); margin-bottom: 20px; display: block;
@@ -164,6 +183,7 @@ html, body {
 #logo-hint {
   display: flex; gap: 4px; justify-content: center; margin-top: -32px; margin-bottom: 28px;
   height: 6px; align-items: center;
+  flex-shrink: 0;
 }
 .hint-dot {
   width: 4px; height: 4px; border-radius: 50%;
@@ -256,16 +276,40 @@ html, body {
 }
 #nr-track { position: absolute; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.12); border-radius: 1px; pointer-events: none; transition: height 0.12s; }
 #nr-slider-wrap:hover #nr-track { height: 4px; }
-#nr-fill { height: 100%; border-radius: 1px; background: rgba(180,120,255,0.6); pointer-events: none; width: 30%; }
+#nr-fill { height: 100%; border-radius: 1px; background: rgba(180,120,255,0.6); pointer-events: none; width: 15%; }
 #nr-handle {
   position: absolute; top: 50%; transform: translateY(-50%) scale(0);
   width: 10px; height: 10px; border-radius: 50%;
   background: rgba(180,120,255,0.9); pointer-events: none;
-  left: 30%; margin-left: -5px; transition: transform 0.12s;
+  left: 15%; margin-left: -5px; transition: transform 0.12s;
 }
 #nr-slider-wrap:hover #nr-handle,
 #nr-slider-wrap.scrubbing #nr-handle { transform: translateY(-50%) scale(1); }
 #nr-val { font-size: 9px; color: rgba(255,255,255,0.35); width: 28px; text-align: right; flex-shrink: 0; }
+
+/* FIX 2: mic gain control */
+#gain-label {
+  font-size: 9px; letter-spacing: 0.1em; color: rgba(255,255,255,0.3);
+  white-space: nowrap; flex-shrink: 0;
+}
+#gain-slider-wrap {
+  flex: 1; height: 24px;
+  display: flex; align-items: center;
+  cursor: pointer; position: relative; user-select: none;
+  touch-action: none; min-width: 60px; max-width: 120px;
+}
+#gain-track { position: absolute; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.12); border-radius: 1px; pointer-events: none; transition: height 0.12s; }
+#gain-slider-wrap:hover #gain-track { height: 4px; }
+#gain-fill { height: 100%; border-radius: 1px; background: rgba(80,200,160,0.6); pointer-events: none; width: 50%; }
+#gain-handle {
+  position: absolute; top: 50%; transform: translateY(-50%) scale(0);
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(80,200,160,0.9); pointer-events: none;
+  left: 50%; margin-left: -5px; transition: transform 0.12s;
+}
+#gain-slider-wrap:hover #gain-handle,
+#gain-slider-wrap.scrubbing #gain-handle { transform: translateY(-50%) scale(1); }
+#gain-val { font-size: 9px; color: rgba(255,255,255,0.35); width: 32px; text-align: right; flex-shrink: 0; }
 
 #live-stop-btn {
   background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.28);
@@ -615,6 +659,7 @@ input[type=range].tp-slider::-webkit-slider-thumb {
     <div class="hint-dot" id="hd2"></div>
     <div class="hint-dot" id="hd3"></div>
   </div>
+  <div id="drop-zone-wrap">
   <div id="drop-zone">
     <span class="drop-glyph">◎ ◈ ◉</span>
     <div class="drop-headline">Drop audio files here</div>
@@ -681,6 +726,7 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   </div>
   <input type="file" id="file-input" accept="audio/*,.wav,.wave,.aiff,.aif,.wma,.flac,.ogg,.opus,.webm,.m4a,.aac,.mp3,.mp4,.caf" multiple>
 </div>
+</div>
 
 <!-- ANALYSIS SCREEN -->
 <div class="screen off" id="analysis-screen">
@@ -703,12 +749,20 @@ input[type=range].tp-slider::-webkit-slider-thumb {
     <button class="t-btn icon-btn" id="live-fs-btn" title="Fullscreen">⛶</button>
   </div>
   <div id="live-controls-row">
-    <div id="nr-label">Noise reduction</div>
+    <!-- Mic gain (NEW) -->
+    <div id="gain-label">Mic gain</div>
+    <div id="gain-slider-wrap">
+      <div id="gain-track"><div id="gain-fill"></div></div>
+      <div id="gain-handle"></div>
+    </div>
+    <div id="gain-val">2.0×</div>
+    <!-- Noise reduction -->
+    <div id="nr-label">NR</div>
     <div id="nr-slider-wrap">
       <div id="nr-track"><div id="nr-fill"></div></div>
       <div id="nr-handle"></div>
     </div>
-    <div id="nr-val">30%</div>
+    <div id="nr-val">15%</div>
   </div>
 </div>
 
@@ -791,8 +845,10 @@ let isLiveMode = false;
 let micStream = null;
 let micSource = null;
 let micAnalyser = null;
-let noiseFloor = null;           // Float32Array — captured noise floor
-let nrAmount = 0.30;             // 0..1
+let micGainNode = null;       // FIX: gain node on mic path
+let micGainValue = 2.0;       // default 2× boost for room audio
+let noiseFloor = null;
+let nrAmount = 0.15;          // FIX: lowered default NR (was 0.30) — less suppression for distant audio
 let liveVibeTick = 0;
 let liveModeViz = 'flowfield';
 
@@ -876,13 +932,16 @@ resize();
 window.addEventListener('resize', () => { resize(); rebuildGrid(); });
 
 // ── AUDIO ──────────────────────────────────────────────
-const FFT = 4096;
+// FIX: larger FFT for better frequency resolution on room audio
+const FFT = 8192;
 let freqData, timeData;
 
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   analyser = audioCtx.createAnalyser();
-  analyser.fftSize = FFT; analyser.smoothingTimeConstant = 0.8;
+  analyser.fftSize = FFT;
+  // FIX: less smoothing = faster, snappier response to transients
+  analyser.smoothingTimeConstant = 0.65;
   gainNode = audioCtx.createGain();
   analyser.connect(gainNode); gainNode.connect(audioCtx.destination);
   freqData = new Uint8Array(analyser.frequencyBinCount);
@@ -922,21 +981,21 @@ function bandAvg(lo, hi) {
 const S = {};
 const raw_bands = ['sub','bass','low','mid','hi','air','kick','snare','bass_g','vocal','string','cymbal'];
 raw_bands.forEach(k => S[k] = 0);
-const ALPHA = { sub:0.3, bass:0.22, low:0.16, mid:0.13, hi:0.1, air:0.08,
-                kick:0.35, snare:0.3, bass_g:0.18, vocal:0.14, string:0.1, cymbal:0.09 };
+// FIX: faster smoothing alphas = more reactive to sudden audio from speakers
+const ALPHA = { sub:0.45, bass:0.38, low:0.28, mid:0.22, hi:0.18, air:0.14,
+                kick:0.5,  snare:0.45, bass_g:0.3, vocal:0.24, string:0.18, cymbal:0.16 };
 
 function smoothBands(raw) {
   for (const k in ALPHA) S[k] += (raw[k] - S[k]) * ALPHA[k];
 }
 
 // ── NOISE REDUCTION ────────────────────────────────────
-// Spectral subtraction: for each bin, subtract a fraction of the captured noise floor.
-// Simple, low-latency, doesn't require a worklet.
-const NR_SMOOTHING = 8; // frames to smooth the floor update
+const NR_SMOOTHING = 8;
 let noiseFloorSmooth = null;
 let noiseFloorReady = false;
 let nrCaptureFrames = 0;
-const NR_CAPTURE_FRAMES = 30; // ~0.5s @ 60fps
+// FIX: fewer capture frames = shorter initial silence required
+const NR_CAPTURE_FRAMES = 15;
 
 function captureNoiseFloor() {
   if (!micAnalyser) return;
@@ -1336,23 +1395,20 @@ function render() {
   if (isLiveMode) {
     if (!micAnalyser) return;
 
-    // apply NR to freq data copy before band extraction
     micAnalyser.getByteFrequencyData(freqData);
     applyNoiseReduction(freqData);
 
-    // level meter
+    // level meter — use boosted signal so the bar actually moves
     let rmsSum = 0;
     for (let i = 0; i < freqData.length; i++) rmsSum += freqData[i] * freqData[i];
     const rmsLevel = Math.sqrt(rmsSum / freqData.length) / 255;
-    document.getElementById('level-fill').style.width = Math.min(100, rmsLevel * 280) + '%';
+    document.getElementById('level-fill').style.width = Math.min(100, rmsLevel * 400) + '%';
 
-    // mic dot pulse
-    document.getElementById('mic-dot-live').classList.toggle('hot', rmsLevel > 0.08);
+    document.getElementById('mic-dot-live').classList.toggle('hot', rmsLevel > 0.04);
 
     const raw = getBands();
     smoothBands(raw);
 
-    // update live vibe every ~3s
     liveVibeTick++;
     if (liveVibeTick % 180 === 0) {
       const vibe = detectVibe(S);
@@ -1453,8 +1509,8 @@ async function startLiveMode() {
     stream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: false,
-        noiseSuppression: false,  // we do our own
-        autoGainControl:  false,
+        noiseSuppression: false,   // we do our own
+        autoGainControl:  false,   // FIX: keep AGC off, we use a manual gain node instead
         channelCount: 1,
         sampleRate: 44100,
       }
@@ -1474,15 +1530,21 @@ async function startLiveMode() {
 
   micAnalyser = audioCtx.createAnalyser();
   micAnalyser.fftSize = FFT;
-  micAnalyser.smoothingTimeConstant = 0.75;
+  // FIX: lower smoothing on mic analyser = snappier response to transients
+  micAnalyser.smoothingTimeConstant = 0.6;
   freqData = new Uint8Array(micAnalyser.frequencyBinCount);
   timeData = new Uint8Array(micAnalyser.frequencyBinCount);
 
+  // FIX: insert a GainNode so we can boost quiet/distant audio
+  micGainNode = audioCtx.createGain();
+  micGainNode.gain.value = micGainValue;
+
   micSource = audioCtx.createMediaStreamSource(stream);
-  micSource.connect(micAnalyser);
+  micSource.connect(micGainNode);
+  micGainNode.connect(micAnalyser);
   // NOTE: intentionally NOT connecting to destination — avoids mic feedback
 
-  // Capture noise floor over first ~0.5s
+  // Capture noise floor over first ~0.25s
   noiseFloor = null;
   nrCaptureFrames = 0;
   noiseFloorReady = false;
@@ -1499,12 +1561,10 @@ async function startLiveMode() {
   PALETTE = { ...VIBE_PALETTES.psychedelic };
   liveModeViz = 'flowfield';
 
-  // Sync mode bar to flowfield
   document.querySelectorAll('.m-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === 'flowfield');
   });
 
-  // Hide file-mode UI, show live UI
   document.getElementById('ui').classList.add('hidden');
   document.getElementById('tweak-toggle').classList.add('hidden');
   document.getElementById('tweak-panel').classList.add('hidden');
@@ -1518,6 +1578,7 @@ async function startLiveMode() {
 
 function stopLiveMode() {
   isLiveMode = false;
+  if (micGainNode) { try { micGainNode.disconnect(); } catch(e){} micGainNode = null; }
   if (micSource) { try { micSource.disconnect(); } catch(e){} micSource = null; }
   if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
   micAnalyser = null;
@@ -1537,6 +1598,40 @@ function stopLiveMode() {
   homeAnimActive = true;
   if (!homeAnimRunning) startHomeAnim();
 }
+
+// ── MIC GAIN SLIDER (NEW) ─────────────────────────────
+(function() {
+  const wrap   = document.getElementById('gain-slider-wrap');
+  const fill   = document.getElementById('gain-fill');
+  const handle = document.getElementById('gain-handle');
+  const valEl  = document.getElementById('gain-val');
+  let dragging = false;
+  // Range: 0.5× to 6× (covers quiet room mics to close mics)
+  const MIN = 0.5, MAX = 6.0;
+
+  function setGain(v) {
+    micGainValue = Math.max(MIN, Math.min(MAX, v));
+    if (micGainNode) micGainNode.gain.setTargetAtTime(micGainValue, audioCtx.currentTime, 0.02);
+    const pct = (micGainValue - MIN) / (MAX - MIN) * 100;
+    fill.style.width = pct + '%';
+    handle.style.left = pct + '%';
+    valEl.textContent = micGainValue.toFixed(1) + '×';
+  }
+
+  function getPct(clientX) {
+    const rect = wrap.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  }
+
+  wrap.addEventListener('mousedown', e => { e.preventDefault(); dragging = true; wrap.classList.add('scrubbing'); setGain(MIN + getPct(e.clientX) * (MAX - MIN)); });
+  document.addEventListener('mousemove', e => { if (dragging) setGain(MIN + getPct(e.clientX) * (MAX - MIN)); });
+  document.addEventListener('mouseup', () => { if (dragging) { dragging = false; wrap.classList.remove('scrubbing'); } });
+  wrap.addEventListener('touchstart', e => { dragging = true; wrap.classList.add('scrubbing'); setGain(MIN + getPct(e.touches[0].clientX) * (MAX - MIN)); }, { passive: true });
+  document.addEventListener('touchmove', e => { if (dragging) setGain(MIN + getPct(e.touches[0].clientX) * (MAX - MIN)); }, { passive: true });
+  document.addEventListener('touchend', () => { if (dragging) { dragging = false; wrap.classList.remove('scrubbing'); } });
+
+  setGain(2.0); // default 2× — good starting point for room audio
+})();
 
 // ── NR SLIDER ─────────────────────────────────────────
 (function() {
@@ -1559,14 +1654,14 @@ function stopLiveMode() {
     return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
   }
 
-  wrap.addEventListener('mousedown', e => { e.preventDefault(); dragging = true; setNR(getPct(e.clientX)); });
+  wrap.addEventListener('mousedown', e => { e.preventDefault(); dragging = true; wrap.classList.add('scrubbing'); setNR(getPct(e.clientX)); });
   document.addEventListener('mousemove', e => { if (dragging) setNR(getPct(e.clientX)); });
-  document.addEventListener('mouseup', () => { dragging = false; });
-  wrap.addEventListener('touchstart', e => { dragging = true; setNR(getPct(e.touches[0].clientX)); }, { passive: true });
+  document.addEventListener('mouseup', () => { if (dragging) { dragging = false; wrap.classList.remove('scrubbing'); } });
+  wrap.addEventListener('touchstart', e => { dragging = true; wrap.classList.add('scrubbing'); setNR(getPct(e.touches[0].clientX)); }, { passive: true });
   document.addEventListener('touchmove', e => { if (dragging) setNR(getPct(e.touches[0].clientX)); }, { passive: true });
-  document.addEventListener('touchend', () => { dragging = false; });
+  document.addEventListener('touchend', () => { if (dragging) { dragging = false; wrap.classList.remove('scrubbing'); } });
 
-  setNR(0.30);
+  setNR(0.15); // FIX: default 15% NR instead of 30% — less aggressive for room audio
 })();
 
 document.getElementById('live-stop-btn').addEventListener('click', stopLiveMode);
@@ -1732,15 +1827,12 @@ async function loadAndPlay(file) {
   PALETTE = { ...VIBE_PALETTES[vibe] || VIBE_PALETTES.psychedelic };
 
   analysis.classList.add('off');
-  // Ensure live mode UI is fully gone
   document.getElementById('live-ui').classList.remove('visible');
   document.getElementById('ui').classList.remove('hidden');
   document.getElementById('mode-bar').classList.remove('hidden');
-  // Sync mode bar to currentMode
   document.querySelectorAll('.m-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === currentMode);
   });
-  // Tweak toggle only visible for layers mode
   const tweakToggle = document.getElementById('tweak-toggle');
   if (currentMode === 'layers') tweakToggle.classList.remove('hidden');
   else tweakToggle.classList.add('hidden');
@@ -2004,7 +2096,6 @@ document.querySelectorAll('.m-btn').forEach(btn => {
       liveModeViz = mode;
     } else {
       currentMode = mode;
-      // tweak panel only for layers in file mode
       const isLayers = mode === 'layers';
       document.getElementById('tweak-toggle').classList.toggle('hidden', !isLayers);
       if (!isLayers) { panelOpen = false; document.getElementById('tweak-panel').classList.add('hidden'); }
@@ -2044,11 +2135,26 @@ document.addEventListener('keydown', e => {
   let clicks = 0, timer = null;
   const logo = document.getElementById('logo-click-target');
   const dots = [document.getElementById('hd1'), document.getElementById('hd2'), document.getElementById('hd3')];
+  const secretEl = document.getElementById('secret-tracks');
   logo.addEventListener('click', () => {
     clicks++;
     if (clicks <= 3) dots[clicks - 1].classList.add('lit');
     if (timer) clearTimeout(timer);
-    if (clicks >= 3) { document.getElementById('secret-tracks').classList.add('revealed'); clicks = 0; dots.forEach(d => d.classList.remove('lit')); return; }
+    if (clicks >= 3) {
+      const isOpen = secretEl.classList.contains('revealed');
+      if (isOpen) {
+        // close: collapse and scroll back to top
+        secretEl.classList.remove('revealed');
+        document.getElementById('drop-zone').scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        // open: reveal and scroll down to show
+        secretEl.classList.add('revealed');
+        setTimeout(() => {
+          document.getElementById('drop-zone').scrollTo({ top: document.getElementById('drop-zone').scrollHeight, behavior: 'smooth' });
+        }, 50);
+      }
+      clicks = 0; dots.forEach(d => d.classList.remove('lit')); return;
+    }
     timer = setTimeout(() => { clicks = 0; dots.forEach(d => d.classList.remove('lit')); }, 1200);
   });
 })();
