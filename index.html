@@ -2658,14 +2658,9 @@ startHomeAnim();
   }
 
   function handleItemClick(f, itemEl) {
-    if (modalMode === 'queue' || selected.size > 0) {
-      if (selected.has(f)) { selected.delete(f); itemEl.classList.remove('selected'); }
-      else { selected.add(f); itemEl.classList.add('selected'); }
-      updateSelectBar();
-    } else {
-      // play mode, nothing selected yet → single-click plays immediately
-      loadDriveFile(f, itemEl, 'play');
-    }
+    if (selected.has(f)) { selected.delete(f); itemEl.classList.remove('selected'); }
+    else { selected.add(f); itemEl.classList.add('selected'); }
+    updateSelectBar();
   }
 
   function updateSelectBar() {
@@ -2845,11 +2840,11 @@ startHomeAnim();
   });
   searchEl.addEventListener('keydown', e => {
     if (e.key==='Escape') closeModal();
-    if (e.key==='Enter' && selected.size===0) {
-      const results = smartSearch(searchEl.value);
-      if (results.length>0) {
-        if (modalMode==='queue') { selected.add(0); renderList(renderedList); }
-        else loadDriveFile(results[0], listEl.querySelector('.gdrive-item'), 'play');
+    if (e.key==='Enter' && renderedList.length > 0) {
+      const top = renderedList[0];
+      const firstItem = listEl.querySelector('.gdrive-item');
+      if (top && firstItem) {
+        selected.add(top); firstItem.classList.add('selected'); updateSelectBar();
       }
     }
   });
