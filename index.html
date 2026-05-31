@@ -1692,7 +1692,21 @@ function detectVibe(S) {
   return best;
 }
 
+// ── VIBE CACHE ────────────────────────────────────────
+// Keyed by normalized filename (no extension, lowercase).
+// Structure: Map<string, { vibe: string, palette: object }>
+const vibeCache = new Map();
+function vibeCacheKey(filename) {
+  return filename.replace(/\.[^.]+$/, '').toLowerCase().trim();
+}
+
 async function analyzeVibe(filename, profile) {
+  const key = vibeCacheKey(filename);
+  if (vibeCache.has(key)) {
+    const cached = vibeCache.get(key);
+    return cached.vibe;
+  }
+
   const rms = parseFloat(profile.rms), zcr = parseFloat(profile.zcr);
   const prompt = `Song: "${filename}"\nRMS: ${rms}\nZCR: ${zcr}\nEnergy: bass=${S.bass.toFixed(2)}, mid=${S.mid.toFixed(2)}, hi=${S.hi.toFixed(2)}\n\nReturn ONE word:\neuphoric, melancholic, energetic, dreamy, tense, serene, dark, psychedelic\n`;
   let vibe;
@@ -1701,6 +1715,8 @@ async function analyzeVibe(filename, profile) {
     if (llmVibe) vibe = llmVibe.trim().toLowerCase(); else throw new Error('Empty');
   } catch(e) { console.log('LLM failed, heuristic:', e.message); vibe = detectVibe(S); }
   if (!VIBE_PALETTES[vibe]) vibe = detectVibe(S);
+
+  vibeCache.set(key, { vibe });
   return vibe;
 }
 
@@ -2491,7 +2507,7 @@ startHomeAnim();
   let driveFiles   = [];
   let folderId     = null;
   let searchTimer  = null;
-  let selected     = new Set();   // indices into current rendered list
+  let selected     = new Set();   // Set of driveFile objects (identity, not index)
   let renderedList = [];          // what's currently shown (search-filtered)
   let modalMode    = 'play';      // 'play' | 'queue'
 
@@ -2616,14 +2632,15 @@ startHomeAnim();
   // ── RENDER ────────────────────────────────────────────
   function renderList(files) {
     renderedList = files;
-    selected = new Set([...selected].filter(i => i < files.length)); // clamp
+    // prune selected to only files still in renderedList
+    const inList = new Set(files);
+    selected = new Set([...selected].filter(f => inList.has(f)));
     updateSelectBar();
     if (!files.length) { listEl.innerHTML = '<div class="gdrive-status">No matches.</div>'; return; }
     listEl.innerHTML = '';
-    files.forEach((f, i) => {
+    files.forEach((f) => {
       const item = document.createElement('div');
-      item.className = 'gdrive-item' + (selected.has(i) ? ' selected' : '');
-      item.dataset.idx = i;
+      item.className = 'gdrive-item' + (selected.has(f) ? ' selected' : '');
       const ext = (f.name.split('.').pop() || '').toLowerCase();
       const glyph = ['mp3','m4a','aac'].includes(ext) ? '♪' : ['wav','aiff','aif'].includes(ext) ? '◎' : ['flac'].includes(ext) ? '◈' : '◉';
       const size = f.size ? formatBytes(parseInt(f.size)) : '';
@@ -2635,28 +2652,19 @@ startHomeAnim();
           <span class="gdrive-item-meta">${escHtml(f.name.split('.').pop().toUpperCase())}${size?' · '+size:''}</span>
         </span>
       `;
-      item.addEventListener('click', () => handleItemClick(f, i, item));
+      item.addEventListener('click', () => handleItemClick(f, item));
       listEl.appendChild(item);
     });
   }
 
-  function handleItemClick(f, i, itemEl) {
-    if (modalMode === 'queue') {
-      // toggle selection
-      if (selected.has(i)) { selected.delete(i); itemEl.classList.remove('selected'); }
-      else { selected.add(i); itemEl.classList.add('selected'); }
+  function handleItemClick(f, itemEl) {
+    if (modalMode === 'queue' || selected.size > 0) {
+      if (selected.has(f)) { selected.delete(f); itemEl.classList.remove('selected'); }
+      else { selected.add(f); itemEl.classList.add('selected'); }
       updateSelectBar();
     } else {
-      // play mode: single-click plays immediately (no selection needed)
-      // but if anything is already selected treat as toggle for multi-add
-      if (selected.size > 0) {
-        if (selected.has(i)) { selected.delete(i); itemEl.classList.remove('selected'); }
-        else { selected.add(i); itemEl.classList.add('selected'); }
-        updateSelectBar();
-      } else {
-        // single click → play immediately
-        loadDriveFile(f, itemEl, 'play');
-      }
+      // play mode, nothing selected yet → single-click plays immediately
+      loadDriveFile(f, itemEl, 'play');
     }
   }
 
@@ -2664,23 +2672,18 @@ startHomeAnim();
     const n = selected.size;
     if (n > 0) {
       selectBar.classList.add('visible');
-      const action = modalMode === 'queue' ? 'Add to queue' : 'Add to queue ↗';
       selectCount.textContent = `${n} selected`;
-      addSelBtn.textContent = modalMode === 'queue' ? `+ Add ${n} to queue` : `Play ${n} tracks`;
+      addSelBtn.textContent = modalMode === 'queue' ? `+ Add ${n} to queue` : `▶ Play ${n} tracks`;
     } else {
       selectBar.classList.remove('visible');
     }
   }
 
-  // ── DOWNLOAD & PLAY / QUEUE ───────────────────────────
+  // ── DOWNLOAD & PLAY (single file) ────────────────────
   async function loadDriveFile(f, itemEl, mode) {
     if (itemEl) { itemEl.classList.add('loading-item'); itemEl.querySelector('.gdrive-item-icon').textContent = '↓'; }
     try {
-      const keyParam = API_KEY !== 'YOUR_GOOGLE_API_KEY' ? `&key=${API_KEY}` : '';
-      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media${keyParam}`);
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const blob = await r.blob();
-      const file = new File([blob], f.name, { type: blob.type || f.mimeType || 'audio/mpeg' });
+      const file = await downloadDriveFile(f);
       if (mode === 'queue') {
         addFilesToQueue([file]);
       } else {
@@ -2699,43 +2702,72 @@ startHomeAnim();
     }
   }
 
+  async function downloadDriveFile(f) {
+    const keyParam = API_KEY !== 'YOUR_GOOGLE_API_KEY' ? `&key=${API_KEY}` : '';
+    const r = await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media${keyParam}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const blob = await r.blob();
+    return new File([blob], f.name, { type: blob.type || f.mimeType || 'audio/mpeg' });
+  }
+
   async function addSelectedToQueue() {
-    const files = [...selected].sort((a,b)=>a-b).map(i => renderedList[i]);
-    addSelBtn.textContent = `Downloading ${files.length}…`;
-    addSelBtn.disabled = true;
-    let done = 0;
-    for (const f of files) {
-      await loadDriveFile(f, null, 'queue');
-      done++;
-      addSelBtn.textContent = `${done}/${files.length} done…`;
+    // sorted by position in rendered list for natural order
+    const driveEntries = [...selected].sort((a, b) =>
+      renderedList.indexOf(a) - renderedList.indexOf(b)
+    );
+    if (!driveEntries.length) return;
+
+    closeModal();
+
+    // Download first track, start playing immediately
+    const first = await downloadDriveFile(driveEntries[0]);
+    if (queue.length === 0 && queueIndex < 0) {
+      // Nothing playing yet — start it
+      homeAnimActive = false;
+      queue = [first]; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
+      loadAndPlay(first);
+    } else {
+      addFilesToQueue([first]);
     }
-    selected.clear();
-    updateSelectBar();
-    addSelBtn.disabled = false;
-    if (modalMode === 'queue') closeModal();
+
+    // Rest load silently in background
+    for (let i = 1; i < driveEntries.length; i++) {
+      try {
+        const file = await downloadDriveFile(driveEntries[i]);
+        addFilesToQueue([file]);
+      } catch(e) { console.error('Background Drive load failed:', e); }
+    }
+
+    selected.clear(); updateSelectBar();
   }
 
   async function playSelectedNow() {
-    const files = [...selected].sort((a,b)=>a-b).map(i => renderedList[i]);
-    addSelBtn.textContent = `Downloading…`;
+    const driveEntries = [...selected].sort((a, b) =>
+      renderedList.indexOf(a) - renderedList.indexOf(b)
+    );
+    if (!driveEntries.length) return;
+
+    addSelBtn.textContent = 'Loading first track…';
     addSelBtn.disabled = true;
-    const downloaded = [];
-    for (const f of files) {
-      try {
-        const keyParam = API_KEY !== 'YOUR_GOOGLE_API_KEY' ? `&key=${API_KEY}` : '';
-        const r = await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media${keyParam}`);
-        if (!r.ok) throw new Error();
-        const blob = await r.blob();
-        downloaded.push(new File([blob], f.name, { type: blob.type || f.mimeType || 'audio/mpeg' }));
-        addSelBtn.textContent = `${downloaded.length}/${files.length}…`;
-      } catch(e) { console.error(e); }
-    }
-    if (downloaded.length > 0) {
+
+    try {
+      const first = await downloadDriveFile(driveEntries[0]);
       closeModal();
       homeAnimActive = false;
-      queue = downloaded; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
-      loadAndPlay(downloaded[0]);
+      queue = [first]; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
+      loadAndPlay(first);
+
+      // Load rest in background, appending as they arrive
+      for (let i = 1; i < driveEntries.length; i++) {
+        try {
+          const file = await downloadDriveFile(driveEntries[i]);
+          addFilesToQueue([file]);
+        } catch(e) { console.error('Background Drive load failed:', e); }
+      }
+    } catch(e) {
+      console.error('Drive load error:', e);
     }
+
     selected.clear(); updateSelectBar(); addSelBtn.disabled = false;
   }
 
@@ -2787,7 +2819,7 @@ startHomeAnim();
   changeFolderBtn.addEventListener('click', resetFolder);
 
   selAllBtn.addEventListener('click', () => {
-    renderedList.forEach((_, i) => selected.add(i));
+    renderedList.forEach(f => selected.add(f));
     renderList(renderedList);
   });
   selNoneBtn.addEventListener('click', () => {
@@ -2809,7 +2841,7 @@ startHomeAnim();
 
   searchEl.addEventListener('input', () => {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => { if(driveFiles.length>0) { selected.clear(); renderList(smartSearch(searchEl.value)); } }, 120);
+    searchTimer = setTimeout(() => { if(driveFiles.length>0) { renderList(smartSearch(searchEl.value)); } }, 120);
   });
   searchEl.addEventListener('keydown', e => {
     if (e.key==='Escape') closeModal();
