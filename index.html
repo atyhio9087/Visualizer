@@ -2507,7 +2507,7 @@ startHomeAnim();
   let driveFiles   = [];
   let folderId     = null;
   let searchTimer  = null;
-  let selected     = new Set();   // Set of driveFile objects (identity, not index)
+  let selected     = [];          // ordered by click — array of driveFile objects
   let renderedList = [];          // what's currently shown (search-filtered)
   let modalMode    = 'play';      // 'play' | 'queue'
 
@@ -2612,7 +2612,7 @@ startHomeAnim();
 
   // ── FOLDER LOADING ────────────────────────────────────
   async function loadFolder(id) {
-    folderId = id; selected.clear(); updateSelectBar();
+    folderId = id; selected = []; updateSelectBar();
     setStatus('Scanning folder…');
     searchEl.value = '';
     try {
@@ -2634,13 +2634,13 @@ startHomeAnim();
     renderedList = files;
     // prune selected to only files still in renderedList
     const inList = new Set(files);
-    selected = new Set([...selected].filter(f => inList.has(f)));
+    selected = selected.filter(f => inList.has(f));
     updateSelectBar();
     if (!files.length) { listEl.innerHTML = '<div class="gdrive-status">No matches.</div>'; return; }
     listEl.innerHTML = '';
     files.forEach((f) => {
       const item = document.createElement('div');
-      item.className = 'gdrive-item' + (selected.has(f) ? ' selected' : '');
+      item.className = 'gdrive-item' + (selected.includes(f) ? ' selected' : '');
       const ext = (f.name.split('.').pop() || '').toLowerCase();
       const glyph = ['mp3','m4a','aac'].includes(ext) ? '♪' : ['wav','aiff','aif'].includes(ext) ? '◎' : ['flac'].includes(ext) ? '◈' : '◉';
       const size = f.size ? formatBytes(parseInt(f.size)) : '';
@@ -2658,13 +2658,14 @@ startHomeAnim();
   }
 
   function handleItemClick(f, itemEl) {
-    if (selected.has(f)) { selected.delete(f); itemEl.classList.remove('selected'); }
-    else { selected.add(f); itemEl.classList.add('selected'); }
+    const idx = selected.indexOf(f);
+    if (idx >= 0) { selected.splice(idx, 1); itemEl.classList.remove('selected'); }
+    else { selected.push(f); itemEl.classList.add('selected'); }
     updateSelectBar();
   }
 
   function updateSelectBar() {
-    const n = selected.size;
+    const n = selected.length;
     if (n > 0) {
       selectBar.classList.add('visible');
       selectCount.textContent = `${n} selected`;
@@ -2706,10 +2707,7 @@ startHomeAnim();
   }
 
   async function addSelectedToQueue() {
-    // sorted by position in rendered list for natural order
-    const driveEntries = [...selected].sort((a, b) =>
-      renderedList.indexOf(a) - renderedList.indexOf(b)
-    );
+    const driveEntries = [...selected]; // already in click order
     if (!driveEntries.length) return;
 
     closeModal();
@@ -2733,13 +2731,11 @@ startHomeAnim();
       } catch(e) { console.error('Background Drive load failed:', e); }
     }
 
-    selected.clear(); updateSelectBar();
+    selected = []; updateSelectBar();
   }
 
   async function playSelectedNow() {
-    const driveEntries = [...selected].sort((a, b) =>
-      renderedList.indexOf(a) - renderedList.indexOf(b)
-    );
+    const driveEntries = [...selected]; // already in click order
     if (!driveEntries.length) return;
 
     addSelBtn.textContent = 'Loading first track…';
@@ -2763,7 +2759,7 @@ startHomeAnim();
       console.error('Drive load error:', e);
     }
 
-    selected.clear(); updateSelectBar(); addSelBtn.disabled = false;
+    selected = []; updateSelectBar(); addSelBtn.disabled = false;
   }
 
   // ── HELPERS ───────────────────────────────────────────
@@ -2777,7 +2773,7 @@ startHomeAnim();
 
   function openModal(mode = 'play') {
     modalMode = mode;
-    selected.clear();
+    selected = [];
     // update header title to reflect context
     document.getElementById('gdrive-modal-title').textContent = mode === 'queue' ? 'Drive — Add to Queue' : 'Google Drive';
     modal.classList.add('open');
@@ -2788,10 +2784,10 @@ startHomeAnim();
       linkInput.focus();
     }
   }
-  function closeModal() { modal.classList.remove('open'); selected.clear(); updateSelectBar(); }
+  function closeModal() { modal.classList.remove('open'); selected = []; updateSelectBar(); }
 
   function resetFolder() {
-    driveFiles = []; folderId = null; selected.clear(); renderedList = [];
+    driveFiles = []; folderId = null; selected = []; renderedList = [];
     linkInput.value = '';
     linkWrap.style.display = '';
     folderInfo.style.display = 'none';
@@ -2814,11 +2810,11 @@ startHomeAnim();
   changeFolderBtn.addEventListener('click', resetFolder);
 
   selAllBtn.addEventListener('click', () => {
-    renderedList.forEach(f => selected.add(f));
+    selected = [...renderedList];
     renderList(renderedList);
   });
   selNoneBtn.addEventListener('click', () => {
-    selected.clear(); renderList(renderedList);
+    selected = []; renderList(renderedList);
   });
   addSelBtn.addEventListener('click', () => {
     if (modalMode === 'queue') addSelectedToQueue();
@@ -2843,8 +2839,8 @@ startHomeAnim();
     if (e.key==='Enter' && renderedList.length > 0) {
       const top = renderedList[0];
       const firstItem = listEl.querySelector('.gdrive-item');
-      if (top && firstItem) {
-        selected.add(top); firstItem.classList.add('selected'); updateSelectBar();
+      if (top && firstItem && !selected.includes(top)) {
+        selected.push(top); firstItem.classList.add('selected'); updateSelectBar();
       }
     }
   });
