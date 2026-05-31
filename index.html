@@ -180,6 +180,127 @@ html, body {
 .secret-btn:hover { border-color: rgba(180,120,255,0.35) !important; background: rgba(180,120,255,0.05) !important; }
 .secret-btn .sample-glyph { color: rgba(180,120,255,0.6); opacity: 1; }
 .secret-btn .sample-name { color: rgba(200,160,255,0.6); }
+
+/* ── GOOGLE DRIVE BUTTON ── */
+#gdrive-btn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 2px; padding: 14px 20px;
+  cursor: pointer; color: rgba(255,255,255,0.55);
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.14em;
+  text-transform: uppercase; transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+#gdrive-btn:hover { border-color: rgba(66,133,244,0.5); color: rgba(120,180,255,0.9); background: rgba(66,133,244,0.06); }
+#gdrive-btn:active { background: rgba(66,133,244,0.1); }
+#gdrive-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.gdrive-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(66,133,244,0.6); flex-shrink: 0; }
+
+/* Drive modal overlay */
+#gdrive-modal {
+  display: none; position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.85);
+  align-items: center; justify-content: center;
+}
+#gdrive-modal.open { display: flex; }
+#gdrive-modal-box {
+  background: #0e0e0e; border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px; width: min(520px, 94vw); max-height: 80vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#gdrive-modal-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,0.07);
+  flex-shrink: 0;
+}
+#gdrive-modal-title {
+  flex: 1; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+}
+#gdrive-search-wrap {
+  padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+}
+#gdrive-search {
+  width: 100%; background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 2px;
+  padding: 9px 12px; color: rgba(255,255,255,0.75);
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.05em;
+  outline: none; transition: border-color 0.2s;
+}
+#gdrive-search:focus { border-color: rgba(66,133,244,0.4); }
+#gdrive-search::placeholder { color: rgba(255,255,255,0.18); }
+#gdrive-link-input {
+  flex: 1; background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 2px;
+  padding: 9px 12px; color: rgba(255,255,255,0.75);
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.04em;
+  outline: none; transition: border-color 0.2s;
+}
+#gdrive-link-input:focus { border-color: rgba(66,133,244,0.4); }
+#gdrive-link-input::placeholder { color: rgba(255,255,255,0.15); font-size:9px; }
+#gdrive-link-btn {
+  background: rgba(66,133,244,0.12); border: 1px solid rgba(66,133,244,0.3);
+  color: rgba(120,180,255,0.85); font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 9px 16px; border-radius: 2px; cursor: pointer; flex-shrink: 0;
+  transition: all 0.2s; white-space: nowrap;
+}
+#gdrive-link-btn:hover { background: rgba(66,133,244,0.22); border-color: rgba(66,133,244,0.5); }
+#gdrive-change-folder {
+  background: none; border: none; color: rgba(255,255,255,0.2);
+  font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.1em;
+  text-transform: uppercase; cursor: pointer; padding: 0; transition: color 0.15s;
+}
+#gdrive-change-folder:hover { color: rgba(255,180,80,0.6); }
+#gdrive-list {
+  flex: 1; overflow-y: auto; padding: 8px 0;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+#gdrive-list::-webkit-scrollbar { width: 3px; }
+#gdrive-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.gdrive-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 18px; cursor: pointer;
+  transition: background 0.15s; border: none; width: 100%; text-align: left;
+  background: none; color: inherit; font-family: inherit;
+}
+.gdrive-item:hover { background: rgba(255,255,255,0.05); }
+.gdrive-item.loading-item { opacity: 0.5; pointer-events: none; }
+.gdrive-item-icon { font-size: 16px; flex-shrink: 0; opacity: 0.6; }
+.gdrive-item-info { flex: 1; min-width: 0; }
+.gdrive-item-name {
+  font-size: 11px; letter-spacing: 0.04em; color: rgba(255,255,255,0.75);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gdrive-item-meta { font-size: 9px; color: rgba(255,255,255,0.25); letter-spacing: 0.06em; margin-top: 2px; }
+.gdrive-status {
+  padding: 24px 18px; text-align: center;
+  font-size: 11px; color: rgba(255,255,255,0.25); letter-spacing: 0.1em;
+}
+#gdrive-modal-close {
+  background: none; border: none; color: rgba(255,255,255,0.3);
+  font-size: 16px; cursor: pointer; padding: 0 4px; transition: color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+#gdrive-modal-close:hover { color: rgba(255,255,255,0.75); }
+#gdrive-footer {
+  padding: 10px 18px; border-top: 1px solid rgba(255,255,255,0.06);
+  font-size: 9px; color: rgba(255,255,255,0.18); letter-spacing: 0.06em;
+  flex-shrink: 0; display: flex; justify-content: space-between; align-items: center;
+}
+.gdrive-load-bar {
+  height: 2px; background: rgba(66,133,244,0.4);
+  animation: gdrive-scan 1.2s ease-in-out infinite;
+  border-radius: 1px; width: 100%;
+}
+@keyframes gdrive-scan {
+  0% { transform: scaleX(0); transform-origin: left; }
+  50% { transform: scaleX(1); transform-origin: left; }
+  51% { transform: scaleX(1); transform-origin: right; }
+  100% { transform: scaleX(0); transform-origin: right; }
+}
 #logo-hint {
   display: flex; gap: 4px; justify-content: center; margin-top: -32px; margin-bottom: 28px;
   height: 6px; align-items: center;
@@ -671,6 +792,12 @@ input[type=range].tp-slider::-webkit-slider-thumb {
       Use microphone
       <span class="mic-dot"></span>
     </button>
+    <div class="drop-divider"><span>or load from cloud</span></div>
+    <button id="gdrive-btn">
+      <span class="gdrive-dot"></span>
+      Google Drive
+      <span class="gdrive-dot"></span>
+    </button>
     <div class="sample-divider">
       <span>or try a sample</span>
     </div>
@@ -726,6 +853,33 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   </div>
   <input type="file" id="file-input" accept="audio/*,.wav,.wave,.aiff,.aif,.wma,.flac,.ogg,.opus,.webm,.m4a,.aac,.mp3,.mp4,.caf" multiple>
 </div>
+</div>
+
+<!-- GOOGLE DRIVE MODAL -->
+<div id="gdrive-modal">
+  <div id="gdrive-modal-box">
+    <div id="gdrive-modal-header">
+      <div id="gdrive-modal-title">Google Drive</div>
+      <button id="gdrive-modal-close" title="Close">✕</button>
+    </div>
+    <div id="gdrive-link-wrap">
+      <div style="padding:12px 18px 10px; border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div style="font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.2);margin-bottom:8px;">Paste a shared Drive folder or file link</div>
+        <div style="display:flex;gap:8px;">
+          <input id="gdrive-link-input" type="text" placeholder="https://drive.google.com/drive/folders/…" autocomplete="off" spellcheck="false">
+          <button id="gdrive-link-btn">Load</button>
+        </div>
+      </div>
+    </div>
+    <div id="gdrive-search-wrap" style="padding:10px 18px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;">
+      <input id="gdrive-search" type="text" placeholder="Search…  try artist, title, or partial words" autocomplete="off" spellcheck="false">
+    </div>
+    <div id="gdrive-list"><div class="gdrive-status">Paste a shared Drive folder link above.</div></div>
+    <div id="gdrive-footer">
+      <span id="gdrive-folder-info" style="display:none;color:rgba(255,255,255,0.28);font-size:9px;letter-spacing:0.06em;"></span>
+      <button id="gdrive-change-folder" style="display:none;">Change folder</button>
+    </div>
+  </div>
 </div>
 
 <!-- ANALYSIS SCREEN -->
@@ -1988,7 +2142,7 @@ document.addEventListener('touchstart', showUI, { passive: true });
 const isTouchDevice = () => window.matchMedia('(hover: none) and (pointer: coarse)').matches;
 
 document.getElementById('drop-zone').addEventListener('click', e => {
-  if (e.target.closest('.sample-btn') || e.target.closest('#live-btn')) return;
+  if (e.target.closest('.sample-btn') || e.target.closest('#live-btn') || e.target.closest('#gdrive-btn')) return;
   if (isTouchDevice()) return;
   document.getElementById('file-input').click();
 });
@@ -2264,6 +2418,326 @@ const dropObserver = new MutationObserver(() => {
 dropObserver.observe(document.getElementById('drop-screen'), { attributes: true, attributeFilter: ['class'] });
 
 startHomeAnim();
+// ── GOOGLE DRIVE ───────────────────────────────────────
+(function() {
+
+  // ── STATE ─────────────────────────────────────────────
+  // API key for public/shared Drive folders (no OAuth needed).
+  // Get one at console.cloud.google.com → Credentials → API Key.
+  // Restrict it to the Drive API for safety.
+  const API_KEY = 'YOUR_GOOGLE_API_KEY';
+
+  let driveFiles   = [];   // full flat file list from loaded folder
+  let folderId     = null;
+  let searchTimer  = null;
+
+  const btn        = document.getElementById('gdrive-btn');
+  const modal      = document.getElementById('gdrive-modal');
+  const closeBtn   = document.getElementById('gdrive-modal-close');
+  const listEl     = document.getElementById('gdrive-list');
+  const searchEl   = document.getElementById('gdrive-search');
+  const linkInput  = document.getElementById('gdrive-link-input');
+  const linkBtn    = document.getElementById('gdrive-link-btn');
+  const linkWrap   = document.getElementById('gdrive-link-wrap');
+  const folderInfo = document.getElementById('gdrive-folder-info');
+  const changeFolderBtn = document.getElementById('gdrive-change-folder');
+
+  // ── LINK PARSING ──────────────────────────────────────
+  // Handles all Drive URL formats:
+  //   /drive/folders/<id>
+  //   /file/d/<id>
+  //   id=<id>  (open?id=)
+  //   /d/<id>  (docs/etc)
+  //   raw ID (26-44 alphanum chars)
+  function parseDriveId(raw) {
+    raw = raw.trim();
+    const patterns = [
+      /\/folders\/([a-zA-Z0-9_-]{10,})/,
+      /\/file\/d\/([a-zA-Z0-9_-]{10,})/,
+      /[?&]id=([a-zA-Z0-9_-]{10,})/,
+      /\/d\/([a-zA-Z0-9_-]{10,})/,
+    ];
+    for (const p of patterns) {
+      const m = raw.match(p);
+      if (m) return m[1];
+    }
+    if (/^[a-zA-Z0-9_-]{10,}$/.test(raw)) return raw;
+    return null;
+  }
+
+  // ── DRIVE API: list all audio files in a folder (recursive) ──
+  const AUDIO_EXTS = /\.(mp3|wav|wave|ogg|oga|flac|aac|m4a|mp4|aiff|aif|wma|opus|webm|caf|3gp|amr)$/i;
+
+  async function listFolderRecursive(id, depth = 0) {
+    if (depth > 4) return []; // safety cap
+    const key = API_KEY === 'YOUR_GOOGLE_API_KEY' ? '' : `&key=${API_KEY}`;
+    const q = encodeURIComponent(`'${id}' in parents and trashed=false`);
+    let items = [], pageToken = '';
+    do {
+      const pt = pageToken ? `&pageToken=${pageToken}` : '';
+      const url = `https://www.googleapis.com/drive/v3/files?q=${q}&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,size)${pt}${key}`;
+      const r = await fetch(url);
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({}));
+        throw new Error(err?.error?.message || `HTTP ${r.status}`);
+      }
+      const data = await r.json();
+      items.push(...(data.files || []));
+      pageToken = data.nextPageToken || '';
+    } while (pageToken);
+
+    const files = [], subFolderJobs = [];
+    for (const item of items) {
+      if (item.mimeType === 'application/vnd.google-apps.folder') {
+        subFolderJobs.push(listFolderRecursive(item.id, depth + 1));
+      } else if (item.mimeType?.startsWith('audio/') || AUDIO_EXTS.test(item.name)) {
+        files.push(item);
+      }
+    }
+    const nested = await Promise.all(subFolderJobs);
+    return files.concat(...nested);
+  }
+
+  // ── SMART SEARCH ENGINE ───────────────────────────────
+  // Mimics Spotify/Apple Music search behaviour:
+  //  - strip file extension, split on separators (-, –, _, ·, spaces)
+  //  - strip noise words (the, a, an, feat, ft, vs, and, &, by)
+  //  - for each query token: exact match (3pts), starts-with (2pts), contains (1pt)
+  //  - phonetic shorthand expansions (don't → dont, & → and, etc.)
+  //  - unmatched tokens penalise the score
+  //  - ties broken alphabetically
+
+  const NOISE = new Set(['the','a','an','feat','ft','vs','and','or','by','from','on','in','of','with','&']);
+
+  function normalise(s) {
+    return s
+      .toLowerCase()
+      .replace(/\.[^.]+$/, '')           // strip extension
+      .replace(/&/g, ' and ')
+      .replace(/['']/g, '')              // don't → dont
+      .replace(/[^a-z0-9]+/g, ' ')      // collapse separators
+      .trim();
+  }
+
+  function tokenise(s) {
+    return normalise(s).split(/\s+/).filter(t => t && !NOISE.has(t));
+  }
+
+  // Levenshtein distance (capped at 2 for perf)
+  function lev(a, b) {
+    if (a === b) return 0;
+    if (Math.abs(a.length - b.length) > 2) return 99;
+    const m = a.length, n = b.length;
+    const dp = Array.from({length: m+1}, (_, i) => [i, ...Array(n).fill(0)]);
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++)
+      for (let j = 1; j <= n; j++)
+        dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1]
+          : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    return dp[m][n];
+  }
+
+  function scoreFile(file, queryTokens) {
+    if (!queryTokens.length) return 1;
+    const nameTokens = tokenise(file.name);
+    const nameNorm   = normalise(file.name);
+    let total = 0, matched = 0;
+
+    for (const qt of queryTokens) {
+      let best = 0;
+      for (const nt of nameTokens) {
+        if (nt === qt)                       { best = Math.max(best, 10); break; }
+        if (nt.startsWith(qt))               { best = Math.max(best, 6); }
+        else if (qt.startsWith(nt) && nt.length >= 3) { best = Math.max(best, 5); }
+        else if (nt.includes(qt))            { best = Math.max(best, 4); }
+        else if (qt.includes(nt) && nt.length >= 3)   { best = Math.max(best, 3); }
+        else if (lev(qt, nt) === 1 && qt.length >= 4) { best = Math.max(best, 2); }
+        else if (lev(qt, nt) === 2 && qt.length >= 5) { best = Math.max(best, 1); }
+      }
+      total += best;
+      if (best > 0) matched++;
+    }
+
+    // bonus: contiguous query in the full normalised name
+    const fullQuery = queryTokens.join(' ');
+    if (nameNorm.includes(fullQuery)) total += 8;
+
+    // penalise unmatched query tokens heavily
+    const unmatched = queryTokens.length - matched;
+    total -= unmatched * 6;
+
+    return total;
+  }
+
+  function smartSearch(query) {
+    const qt = tokenise(query);
+    if (!qt.length) return [...driveFiles].sort((a,b) => a.name.localeCompare(b.name));
+    return driveFiles
+      .map(f => ({ f, s: scoreFile(f, qt) }))
+      .filter(x => x.s > 0)
+      .sort((a, b) => b.s - a.s || a.f.name.localeCompare(b.f.name))
+      .map(x => x.f);
+  }
+
+  // ── FOLDER LOADING ────────────────────────────────────
+  async function loadFolder(id) {
+    folderId = id;
+    setStatus('Scanning folder…');
+    searchEl.value = '';
+    try {
+      driveFiles = await listFolderRecursive(id);
+      if (driveFiles.length === 0) {
+        setStatus('No audio files found in this folder.');
+        return;
+      }
+      folderInfo.textContent = `${driveFiles.length} audio file${driveFiles.length !== 1 ? 's' : ''} loaded`;
+      linkWrap.style.display = 'none';
+      folderInfo.style.display = '';
+      changeFolderBtn.style.display = '';
+      searchEl.focus();
+      renderList(driveFiles);
+    } catch(e) {
+      setStatus(`Could not read folder: ${e.message}`);
+    }
+  }
+
+  // ── RENDER ────────────────────────────────────────────
+  function renderList(files) {
+    if (!files.length) {
+      listEl.innerHTML = '<div class="gdrive-status">No matches.</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    files.forEach(f => {
+      const item = document.createElement('button');
+      item.className = 'gdrive-item';
+      const ext = (f.name.split('.').pop() || '').toLowerCase();
+      const glyph = ['mp3','m4a','aac'].includes(ext) ? '♪'
+                  : ['wav','aiff','aif'].includes(ext) ? '◎'
+                  : ['flac'].includes(ext) ? '◈' : '◉';
+      const size = f.size ? formatBytes(parseInt(f.size)) : '';
+      item.innerHTML = `
+        <span class="gdrive-item-icon">${glyph}</span>
+        <span class="gdrive-item-info">
+          <span class="gdrive-item-name">${escHtml(f.name.replace(/\.[^.]+$/, ''))}</span>
+          <span class="gdrive-item-meta">${escHtml(f.name.split('.').pop().toUpperCase())}${size ? ' · ' + size : ''}</span>
+        </span>
+      `;
+      item.addEventListener('click', () => loadDriveFile(f, item));
+      listEl.appendChild(item);
+    });
+  }
+
+  // ── DOWNLOAD & PLAY ───────────────────────────────────
+  async function loadDriveFile(f, itemEl) {
+    itemEl.classList.add('loading-item');
+    const iconEl = itemEl.querySelector('.gdrive-item-icon');
+    iconEl.textContent = '↓';
+    try {
+      const key = API_KEY === 'YOUR_GOOGLE_API_KEY' ? '' : `?key=${API_KEY}`;
+      const r = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media${API_KEY === 'YOUR_GOOGLE_API_KEY' ? '' : '&key=' + API_KEY}`
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const blob = await r.blob();
+      const file = new File([blob], f.name, { type: blob.type || f.mimeType || 'audio/mpeg' });
+      closeModal();
+      homeAnimActive = false;
+      queue = [file]; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
+      loadAndPlay(file);
+    } catch(e) {
+      itemEl.classList.remove('loading-item');
+      iconEl.textContent = '✕';
+      setTimeout(() => {
+        itemEl.classList.remove('loading-item');
+        const ext = (f.name.split('.').pop() || '').toLowerCase();
+        iconEl.textContent = ['mp3','m4a','aac'].includes(ext) ? '♪'
+          : ['wav','aiff','aif'].includes(ext) ? '◎' : ['flac'].includes(ext) ? '◈' : '◉';
+      }, 2000);
+      console.error('Drive load error:', e);
+    }
+  }
+
+  // ── UI HELPERS ────────────────────────────────────────
+  function setStatus(msg) {
+    listEl.innerHTML = `<div class="gdrive-status">${escHtml(msg)}</div>`;
+  }
+
+  function openModal() {
+    modal.classList.add('open');
+    if (driveFiles.length > 0) {
+      searchEl.focus();
+      renderList(smartSearch(searchEl.value));
+    } else {
+      linkInput.focus();
+    }
+  }
+
+  function closeModal() { modal.classList.remove('open'); }
+
+  function resetFolder() {
+    driveFiles = []; folderId = null;
+    linkInput.value = '';
+    linkWrap.style.display = '';
+    folderInfo.style.display = 'none';
+    changeFolderBtn.style.display = 'none';
+    listEl.innerHTML = '<div class="gdrive-status">Paste a shared Drive folder link above.</div>';
+    searchEl.value = '';
+    linkInput.focus();
+  }
+
+  function formatBytes(b) {
+    if (b < 1024*1024) return (b/1024).toFixed(0) + ' KB';
+    return (b/(1024*1024)).toFixed(1) + ' MB';
+  }
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── EVENTS ────────────────────────────────────────────
+  btn.addEventListener('click', e => { e.stopPropagation(); openModal(); });
+  closeBtn.addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+  changeFolderBtn.addEventListener('click', resetFolder);
+
+  linkBtn.addEventListener('click', () => {
+    const id = parseDriveId(linkInput.value);
+    if (!id) { linkInput.style.borderColor = 'rgba(255,80,80,0.5)'; setTimeout(() => linkInput.style.borderColor = '', 1200); return; }
+    loadFolder(id);
+  });
+
+  linkInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') linkBtn.click();
+    if (e.key === 'Escape') closeModal();
+  });
+  linkInput.addEventListener('paste', e => {
+    setTimeout(() => {
+      const id = parseDriveId(linkInput.value);
+      if (id) loadFolder(id);
+    }, 30);
+  });
+  linkInput.addEventListener('input', () => {
+    linkInput.style.borderColor = '';
+  });
+
+  searchEl.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      if (driveFiles.length > 0) renderList(smartSearch(searchEl.value));
+    }, 120);
+  });
+  searchEl.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Enter') {
+      const results = smartSearch(searchEl.value);
+      if (results.length > 0) {
+        const firstItem = listEl.querySelector('.gdrive-item');
+        if (firstItem) firstItem.click();
+      }
+    }
+  });
+})();
+
 ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
 render();
 </script>
