@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "app.py": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    { "source": "/api/info",   "destination": "/app.py" },
+    { "source": "/api/stream", "destination": "/app.py" },
+    { "source": "/api/health", "destination": "/app.py" }
+  ]
+}
