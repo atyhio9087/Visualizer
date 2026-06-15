@@ -456,8 +456,6 @@ canvas#canvas {
   position: fixed; top: 0; left: 0;
   width: 100%; height: 100%;
   display: block;
-  image-rendering: crisp-edges;
-  image-rendering: -webkit-optimize-contrast;
 }
 #glow-canvas {
   position: fixed; top: 0; left: 0;
@@ -466,8 +464,6 @@ canvas#canvas {
   pointer-events: none;
   opacity: 0.2;
   mix-blend-mode: screen;
-  image-rendering: crisp-edges;
-  image-rendering: -webkit-optimize-contrast;
 }
 
 #ui {
@@ -807,7 +803,7 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 #gdrive-sel-all-btn { }
 
 /* queue footer updated */
-#queue-add-local-btn, #queue-add-yt-btn, #queue-add-drive-btn, #queue-clear-btn {
+#queue-add-local-btn, #queue-add-drive-btn, #queue-clear-btn {
   flex: 1; background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.1);
   color: rgba(255,255,255,0.4); font-family: 'IBM Plex Mono', monospace;
@@ -821,63 +817,6 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 #queue-clear-btn:hover { background: rgba(255,50,50,0.08); border-color: rgba(255,80,80,0.3); color: rgba(255,100,100,0.7); }
 
 #prev-btn, #next-btn { width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px); }
-
-/* ── YOUTUBE ── */
-#yt-btn {
-  display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
-  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);
-  border-radius:2px;padding:14px 20px;cursor:pointer;color:rgba(255,255,255,0.55);
-  font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.14em;
-  text-transform:uppercase;transition:all 0.2s;-webkit-tap-highlight-color:transparent;
-}
-#yt-btn:hover{border-color:rgba(255,60,60,0.5);color:rgba(255,130,130,0.9);background:rgba(255,40,40,0.06);}
-#yt-btn:active{background:rgba(255,40,40,0.1);}
-.yt-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,70,70,0.6);flex-shrink:0;}
-#yt-modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;}
-#yt-modal.open{display:flex;}
-#yt-modal-box{background:#0e0e0e;border:1px solid rgba(255,255,255,0.12);border-radius:4px;width:min(540px,94vw);max-height:82vh;display:flex;flex-direction:column;overflow:hidden;}
-#yt-modal-header{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0;}
-#yt-modal-title{flex:1;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.55);}
-#yt-modal-close{background:none;border:none;color:rgba(255,255,255,0.3);font-size:16px;cursor:pointer;padding:0 4px;transition:color 0.2s;-webkit-tap-highlight-color:transparent;}
-#yt-modal-close:hover{color:rgba(255,255,255,0.75);}
-#yt-input-wrap{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;}
-#yt-input-label{font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.2);margin-bottom:8px;}
-#yt-input-row{display:flex;gap:8px;}
-#yt-url-input{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:2px;padding:9px 12px;color:rgba(255,255,255,0.75);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.04em;outline:none;transition:border-color 0.2s;}
-#yt-url-input:focus{border-color:rgba(255,60,60,0.4);}
-#yt-url-input::placeholder{color:rgba(255,255,255,0.15);font-size:9px;}
-#yt-load-btn{background:rgba(255,40,40,0.12);border:1px solid rgba(255,60,60,0.3);color:rgba(255,130,130,0.85);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 16px;border-radius:2px;cursor:pointer;flex-shrink:0;transition:all 0.2s;white-space:nowrap;}
-#yt-load-btn:hover{background:rgba(255,40,40,0.24);border-color:rgba(255,60,60,0.55);}
-#yt-load-btn:disabled{opacity:0.4;cursor:not-allowed;}
-#yt-preview{display:none;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;gap:12px;align-items:flex-start;}
-#yt-preview.visible{display:flex;}
-#yt-preview-thumb{width:72px;height:41px;object-fit:cover;border-radius:2px;background:rgba(255,255,255,0.05);flex-shrink:0;}
-#yt-preview-title{font-size:11px;letter-spacing:0.04em;color:rgba(255,255,255,0.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:3px;}
-#yt-preview-meta{font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:0.06em;}
-#yt-list{flex:1;overflow-y:auto;padding:4px 0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent;min-height:48px;}
-#yt-list::-webkit-scrollbar{width:3px;}
-#yt-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
-.yt-status{padding:22px 18px;text-align:center;font-size:11px;color:rgba(255,255,255,0.25);letter-spacing:0.1em;}
-.yt-loader{height:2px;background:rgba(255,60,60,0.4);animation:gdrive-scan 1.2s ease-in-out infinite;border-radius:1px;margin:0 18px 12px;}
-.yt-item{display:flex;align-items:center;gap:10px;padding:8px 18px;cursor:pointer;transition:background 0.12s;-webkit-tap-highlight-color:transparent;}
-.yt-item:hover{background:rgba(255,255,255,0.04);}
-.yt-item.selected{background:rgba(255,40,40,0.05);}
-.yt-check{width:14px;height:14px;border:1px solid rgba(255,255,255,0.18);border-radius:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
-.yt-item.selected .yt-check{background:rgba(255,40,40,0.7);border-color:rgba(255,60,60,0.9);}
-.yt-item.selected .yt-check::after{content:'✓';font-size:9px;color:#fff;line-height:1;}
-.yt-item-thumb{width:40px;height:23px;object-fit:cover;border-radius:1px;flex-shrink:0;background:rgba(255,255,255,0.05);}
-.yt-item-info{flex:1;min-width:0;}
-.yt-item-name{font-size:10px;letter-spacing:0.04em;color:rgba(255,255,255,0.7);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.yt-item-meta{font-size:9px;color:rgba(255,255,255,0.25);letter-spacing:0.05em;margin-top:2px;}
-#yt-footer{padding:10px 18px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;align-items:center;flex-shrink:0;}
-#yt-sel-label{flex:1;font-size:9px;color:rgba(255,255,255,0.25);letter-spacing:0.08em;}
-.yt-foot-btn{background:none;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.4);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 11px;border-radius:2px;cursor:pointer;transition:all 0.15s;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
-.yt-foot-btn:hover{border-color:rgba(255,255,255,0.3);color:rgba(255,255,255,0.75);}
-.yt-foot-btn:disabled{opacity:0.3;cursor:not-allowed;}
-#yt-play-now{background:rgba(255,40,40,0.12);border-color:rgba(255,60,60,0.35);color:rgba(255,130,130,0.9);}
-#yt-play-now:hover:not(:disabled){background:rgba(255,40,40,0.26);border-color:rgba(255,60,60,0.6);}
-#queue-add-yt-btn{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:9px;cursor:pointer;border-radius:2px;transition:all 0.15s;-webkit-tap-highlight-color:transparent;}
-#queue-add-yt-btn:hover{background:rgba(255,40,40,0.08);border-color:rgba(255,60,60,0.3);color:rgba(255,130,130,0.8);}
 </style>
 </head>
 <body>
@@ -911,12 +850,6 @@ input[type=range].tp-slider::-webkit-slider-thumb {
       <span class="gdrive-dot"></span>
       Google Drive
       <span class="gdrive-dot"></span>
-    </button>
-    <div class="drop-divider"><span>or stream from youtube</span></div>
-    <button id="yt-btn">
-      <span class="yt-dot"></span>
-      YouTube / Playlist / Mix
-      <span class="yt-dot"></span>
     </button>
     <div class="sample-divider">
       <span>or try a sample</span>
@@ -973,38 +906,6 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   </div>
   <input type="file" id="file-input" accept="audio/*,.wav,.wave,.aiff,.aif,.wma,.flac,.ogg,.opus,.webm,.m4a,.aac,.mp3,.mp4,.caf" multiple>
 </div>
-</div>
-
-<!-- YOUTUBE MODAL -->
-<div id="yt-modal">
-  <div id="yt-modal-box">
-    <div id="yt-modal-header">
-      <div id="yt-modal-title">YouTube</div>
-      <button id="yt-modal-close" title="Close">✕</button>
-    </div>
-    <div id="yt-input-wrap">
-      <div id="yt-input-label">Paste a YouTube video, playlist, or mix link</div>
-      <div id="yt-input-row">
-        <input id="yt-url-input" type="text" placeholder="https://youtube.com/watch?v=… or ?list=…" autocomplete="off" spellcheck="false">
-        <button id="yt-load-btn">Load</button>
-      </div>
-    </div>
-    <div id="yt-preview">
-      <img id="yt-preview-thumb" src="" alt="">
-      <div style="flex:1;min-width:0;">
-        <div id="yt-preview-title"></div>
-        <div id="yt-preview-meta"></div>
-      </div>
-    </div>
-    <div id="yt-list"><div class="yt-status">Paste a YouTube link above.</div></div>
-    <div id="yt-footer">
-      <div id="yt-sel-label"></div>
-      <button class="yt-foot-btn" id="yt-sel-all" style="display:none">All</button>
-      <button class="yt-foot-btn" id="yt-sel-none" style="display:none">None</button>
-      <button class="yt-foot-btn" id="yt-add-queue" disabled>+ Queue</button>
-      <button class="yt-foot-btn" id="yt-play-now" disabled>▶ Play</button>
-    </div>
-  </div>
 </div>
 
 <!-- GOOGLE DRIVE MODAL -->
@@ -1133,7 +1034,6 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   <div id="queue-list"></div>
   <div id="queue-footer">
     <button id="queue-add-local-btn">+ Local</button>
-    <button id="queue-add-yt-btn">+ YT</button>
     <button id="queue-add-drive-btn" disabled title="Load a Drive folder first">+ Drive</button>
     <button id="queue-clear-btn">Clear</button>
   </div>
@@ -1144,11 +1044,11 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 // ═══════════════════════════════════════════════════════
 //  DPR + CANVAS
 // ═══════════════════════════════════════════════════════
-const DPR = Math.min(window.devicePixelRatio || 1, 4);
+const DPR = Math.min(window.devicePixelRatio || 1, 3);
 const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
+const ctx = canvas.getContext('2d');
 const glowCanvas = document.getElementById('glow-canvas');
-const glowCtx = glowCanvas.getContext('2d', { alpha: true, willReadFrequently: false });
+const glowCtx = glowCanvas.getContext('2d');
 
 let audioCtx, analyser, source, audioBuffer, gainNode;
 let startTime = 0, pauseOffset = 0, isPlaying = false;
@@ -2599,281 +2499,6 @@ const dropObserver = new MutationObserver(() => {
 dropObserver.observe(document.getElementById('drop-screen'), { attributes: true, attributeFilter: ['class'] });
 
 startHomeAnim();
-
-// ══════════════════════════════════════════════════════
-//  YOUTUBE
-// ══════════════════════════════════════════════════════
-(function () {
-  'use strict';
-
-  // ── DOM ───────────────────────────────────────────────
-  const modal      = document.getElementById('yt-modal');
-  const titleEl    = document.getElementById('yt-modal-title');
-  const closeBtn   = document.getElementById('yt-modal-close');
-  const urlInput   = document.getElementById('yt-url-input');
-  const loadBtn    = document.getElementById('yt-load-btn');
-  const preview    = document.getElementById('yt-preview');
-  const prevThumb  = document.getElementById('yt-preview-thumb');
-  const prevTitle  = document.getElementById('yt-preview-title');
-  const prevMeta   = document.getElementById('yt-preview-meta');
-  const listEl     = document.getElementById('yt-list');
-  const selLabel   = document.getElementById('yt-sel-label');
-  const selAllBtn  = document.getElementById('yt-sel-all');
-  const selNoneBtn = document.getElementById('yt-sel-none');
-  const addQueueBtn= document.getElementById('yt-add-queue');
-  const playNowBtn = document.getElementById('yt-play-now');
-
-  // ── State ─────────────────────────────────────────────
-  let currentInfo = null;
-  let selectedIds = [];
-  let modalMode   = 'play'; // 'play' | 'queue'
-  const infoCache = new Map(); // url → info
-
-  // ── Helpers ───────────────────────────────────────────
-  const esc = s => String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const fmtDur = s => {
-    if (!s) return '';
-    return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-  };
-
-  function resetUI() {
-    preview.classList.remove('visible');
-    selAllBtn.style.display  = 'none';
-    selNoneBtn.style.display = 'none';
-    addQueueBtn.disabled     = true;
-    playNowBtn.disabled      = true;
-    selLabel.textContent     = '';
-    selectedIds              = [];
-    currentInfo              = null;
-  }
-
-  function setStatus(html) {
-    resetUI();
-    listEl.innerHTML = `<div class="yt-status">${html}</div>`;
-  }
-
-  function setLoading(msg) {
-    resetUI();
-    listEl.innerHTML = `<div class="yt-loader"></div><div class="yt-status">${msg || 'Fetching…'}</div>`;
-  }
-
-  function updateButtons() {
-    const n = selectedIds.length;
-    selLabel.textContent  = n ? `${n} track${n !== 1 ? 's' : ''} selected` : 'None selected';
-    addQueueBtn.disabled  = n === 0;
-    playNowBtn.disabled   = n === 0;
-  }
-
-  // /api/stream?id=X → Flask 302 → YouTube CDN
-  // The browser follows the redirect transparently in fetch()
-  function streamSrc(id) {
-    return `/api/stream?id=${encodeURIComponent(id)}`;
-  }
-
-  // Fetch the redirected CDN URL then download as blob → File
-  // (We need a File object so loadAndPlay / addFilesToQueue can handle it normally)
-  async function ytToFile(id, title) {
-    const resp = await fetch(streamSrc(id));
-    if (!resp.ok) {
-      const txt = await resp.text().catch(() => '');
-      // Try to parse JSON error from Flask
-      try { const j = JSON.parse(txt); throw new Error(j.error || `HTTP ${resp.status}`); }
-      catch(e2) { if (e2.message !== `HTTP ${resp.status}`) throw e2; }
-      throw new Error(`Stream error ${resp.status}`);
-    }
-    const blob = await resp.blob();
-    const ext  = blob.type.includes('mp4') ? '.m4a'
-               : blob.type.includes('ogg') ? '.ogg'
-               : '.webm';
-    const safe = (title || id).replace(/[/\\?%*:|"<>]/g, '-') + ext;
-    return new File([blob], safe, { type: blob.type || 'audio/webm' });
-  }
-
-  // ── Fetch info ────────────────────────────────────────
-  async function fetchInfo(url) {
-    if (infoCache.has(url)) return infoCache.get(url);
-    const resp = await fetch(`/api/info?url=${encodeURIComponent(url)}`);
-    const text = await resp.text();
-    let data;
-    try { data = JSON.parse(text); }
-    catch { throw new Error('Server returned non-JSON — check Flask is running'); }
-    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
-    infoCache.set(url, data);
-    return data;
-  }
-
-  // ── Render info ───────────────────────────────────────
-  function renderInfo(info) {
-    currentInfo = info;
-
-    if (info.type === 'video') {
-      titleEl.textContent       = 'YouTube';
-      prevThumb.src             = info.thumbnail || '';
-      prevTitle.textContent     = info.title || 'Unknown';
-      prevMeta.textContent      = [info.uploader, fmtDur(info.duration)].filter(Boolean).join(' · ');
-      preview.classList.add('visible');
-      listEl.innerHTML          = '';
-      selAllBtn.style.display   = 'none';
-      selNoneBtn.style.display  = 'none';
-      selectedIds               = [info.id];
-      updateButtons();
-      return;
-    }
-
-    // Playlist / mix
-    titleEl.textContent      = `YouTube — ${info.title || 'Playlist'} (${info.entries.length})`;
-    preview.classList.remove('visible');
-    selectedIds              = info.entries.map(e => e.id);
-    selAllBtn.style.display  = '';
-    selNoneBtn.style.display = '';
-    listEl.innerHTML         = '';
-
-    info.entries.forEach(entry => {
-      const div = document.createElement('div');
-      div.className  = 'yt-item selected';
-      div.dataset.id = entry.id;
-      div.innerHTML  = `
-        <div class="yt-check"></div>
-        <img class="yt-item-thumb" src="${esc(entry.thumbnail||'')}" alt="" loading="lazy">
-        <div class="yt-item-info">
-          <div class="yt-item-name" title="${esc(entry.title)}">${esc(entry.title)}</div>
-          <div class="yt-item-meta">${esc(entry.uploader||'')}${entry.duration?' · '+fmtDur(entry.duration):''}</div>
-        </div>`;
-      div.addEventListener('click', () => {
-        const i = selectedIds.indexOf(entry.id);
-        if (i >= 0) { selectedIds.splice(i,1); div.classList.remove('selected'); }
-        else        { selectedIds.push(entry.id); div.classList.add('selected'); }
-        updateButtons();
-      });
-      listEl.appendChild(div);
-    });
-
-    updateButtons();
-  }
-
-  // ── Load handler ──────────────────────────────────────
-  async function doLoad() {
-    const url = urlInput.value.trim();
-    if (!url) {
-      urlInput.style.borderColor = 'rgba(255,60,60,0.6)';
-      setTimeout(() => urlInput.style.borderColor = '', 1200);
-      return;
-    }
-    setLoading('Fetching track info…');
-    loadBtn.disabled = true;
-    try {
-      renderInfo(await fetchInfo(url));
-    } catch(e) {
-      setStatus(`⚠ ${esc(e.message)}`);
-    } finally {
-      loadBtn.disabled = false;
-    }
-  }
-
-  // ── Play / Queue ──────────────────────────────────────
-  async function execute(mode) {
-    if (!selectedIds.length || !currentInfo) return;
-    const ids  = [...selectedIds];
-    const info = currentInfo;
-    closeModal();
-
-    const getTitle = id => info.type === 'video'
-      ? info.title
-      : (info.entries||[]).find(e => e.id === id)?.title || id;
-
-    homeAnimActive = false;
-
-    if (mode === 'play') {
-      // Show analysis screen immediately so user sees feedback
-      const analysisScreen = document.getElementById('analysis-screen');
-      const dropScreen     = document.getElementById('drop-screen');
-      const statusEl       = document.getElementById('analysis-status');
-      if (statusEl)    statusEl.textContent = 'Fetching audio stream…';
-      if (analysisScreen) analysisScreen.classList.remove('off');
-      if (dropScreen)     dropScreen.classList.add('off');
-
-      let first;
-      try {
-        first = await ytToFile(ids[0], getTitle(ids[0]));
-      } catch(e) {
-        console.error('YT stream error:', e);
-        if (analysisScreen) analysisScreen.classList.add('off');
-        if (dropScreen)     dropScreen.classList.remove('off');
-        homeAnimActive = true;
-        return;
-      }
-      queue = [first]; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
-      const shuffleBtn = document.getElementById('queue-shuffle-btn');
-      if (shuffleBtn) shuffleBtn.classList.remove('active');
-      loadAndPlay(first);
-
-      // Rest queue in background
-      for (let i = 1; i < ids.length; i++) {
-        ytToFile(ids[i], getTitle(ids[i]))
-          .then(f => addFilesToQueue([f]))
-          .catch(e => console.error(`YT bg ${ids[i]}:`, e));
-      }
-
-    } else {
-      // Queue mode — sequential to preserve order
-      const wasEmpty = queue.length === 0;
-      for (let i = 0; i < ids.length; i++) {
-        try {
-          const f = await ytToFile(ids[i], getTitle(ids[i]));
-          if (wasEmpty && i === 0) {
-            homeAnimActive = false;
-            queue = [f]; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
-            loadAndPlay(f);
-          } else {
-            addFilesToQueue([f]);
-          }
-        } catch(e) { console.error(`YT queue ${ids[i]}:`, e); }
-      }
-    }
-  }
-
-  // ── Modal ─────────────────────────────────────────────
-  function openModal(mode) {
-    modalMode = mode || 'play';
-    titleEl.textContent = modalMode === 'queue' ? 'YouTube — Add to Queue' : 'YouTube';
-    modal.classList.add('open');
-    setTimeout(() => urlInput.focus(), 60);
-  }
-  function closeModal() { modal.classList.remove('open'); }
-
-  // ── Events ────────────────────────────────────────────
-  document.getElementById('yt-btn').addEventListener('click', e => { e.stopPropagation(); openModal('play'); });
-  document.getElementById('queue-add-yt-btn').addEventListener('click', () => openModal('queue'));
-  closeBtn.addEventListener('click', closeModal);
-  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
-
-  loadBtn.addEventListener('click', doLoad);
-  urlInput.addEventListener('keydown', e => {
-    if (e.key === 'Enter')  doLoad();
-    if (e.key === 'Escape') closeModal();
-  });
-  // Auto-load on paste
-  urlInput.addEventListener('paste', () => setTimeout(doLoad, 50));
-  urlInput.addEventListener('input', () => { urlInput.style.borderColor = ''; });
-
-  selAllBtn.addEventListener('click', () => {
-    if (!currentInfo?.entries) return;
-    selectedIds = currentInfo.entries.map(e => e.id);
-    listEl.querySelectorAll('.yt-item').forEach(el => el.classList.add('selected'));
-    updateButtons();
-  });
-  selNoneBtn.addEventListener('click', () => {
-    selectedIds = [];
-    listEl.querySelectorAll('.yt-item').forEach(el => el.classList.remove('selected'));
-    updateButtons();
-  });
-
-  playNowBtn.addEventListener('click',  () => execute('play'));
-  addQueueBtn.addEventListener('click', () => execute('queue'));
-})();
-
 // ── GOOGLE DRIVE ───────────────────────────────────────
 (function() {
 
