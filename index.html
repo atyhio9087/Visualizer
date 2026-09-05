@@ -666,6 +666,8 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 #repeat-btn { width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px); font-size: 11px; }
 #repeat-btn.active { border-color: rgba(180,120,255,0.7); color: rgba(180,120,255,0.9); }
 #repeat-btn.active-one { border-color: rgba(255,180,80,0.7); color: rgba(255,180,80,0.9); }
+#shuffle-btn { width: clamp(28px, 6vw, 32px); height: clamp(28px, 6vw, 32px); font-size: 11px; }
+#shuffle-btn.active { border-color: rgba(180,120,255,0.7); color: rgba(180,120,255,0.9); }
 #queue-btn-transport.has-queue { color: rgba(255,255,255,0.85); }
 
 #queue-panel {
@@ -692,15 +694,14 @@ input[type=range].tp-slider::-webkit-slider-thumb {
 #queue-count {
   font-size: 9px; color: rgba(255,255,255,0.2); letter-spacing: 0.08em;
 }
-#queue-shuffle-btn, #queue-close-btn {
+#queue-close-btn {
   background: none; border: 1px solid rgba(255,255,255,0.12);
   color: rgba(255,255,255,0.4); font-family: 'IBM Plex Mono', monospace;
   font-size: 10px; cursor: pointer; border-radius: 2px;
   padding: 5px 9px; transition: all 0.15s; letter-spacing: 0.06em;
   -webkit-tap-highlight-color: transparent;
 }
-#queue-shuffle-btn:hover, #queue-close-btn:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
-#queue-shuffle-btn.active { color: rgba(180,120,255,0.9); border-color: rgba(180,120,255,0.4); }
+#queue-close-btn:hover { color: #fff; border-color: rgba(255,255,255,0.4); }
 #queue-close-btn { font-size: 12px; padding: 4px 8px; }
 
 #queue-list {
@@ -997,9 +998,11 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   </div>
   <div id="transport">
     <button class="t-btn" id="back-btn" title="New file">←</button>
+    <button class="t-btn icon-btn" id="shuffle-btn" title="Shuffle">⇄</button>
     <button class="t-btn icon-btn" id="prev-btn" title="Previous">⏮</button>
     <button class="t-btn" id="play-btn">▶</button>
     <button class="t-btn icon-btn" id="next-btn" title="Next">⏭</button>
+    <button class="t-btn icon-btn" id="repeat-btn" title="Repeat (off)">⇌</button>
     <div id="progress-wrap">
       <div id="progress-track">
         <div id="progress-fill">
@@ -1014,7 +1017,6 @@ input[type=range].tp-slider::-webkit-slider-thumb {
         <div id="vol-track"><div id="vol-fill" style="width:80%"><div id="vol-handle"></div></div></div>
       </div>
     </div>
-    <button class="t-btn icon-btn" id="repeat-btn" title="Repeat (off)">⇌</button>
     <button class="t-btn icon-btn" id="queue-btn-transport" title="Queue (Q)">≡</button>
     <button class="t-btn icon-btn" id="fs-btn" title="Fullscreen">⛶</button>
   </div>
@@ -1028,7 +1030,6 @@ input[type=range].tp-slider::-webkit-slider-thumb {
   <div id="queue-header">
     <div id="queue-title">Queue</div>
     <div id="queue-count">0 tracks</div>
-    <button id="queue-shuffle-btn" title="Shuffle">⇄</button>
     <button id="queue-close-btn" title="Close">✕</button>
   </div>
   <div id="queue-list"></div>
@@ -1519,7 +1520,19 @@ function drawLayers() {
 
 // ── VIZ 3: WARP ────────────────────────────────────────
 function drawWarp() {
-  applyFade();
+  // Both shapes in this view (the ring, the horizontal scope line) move
+  // fast and span nearly the whole canvas, and hueShift keeps rotating —
+  // so the slow, atmospheric fade shared with Flow/Layers lets old strokes
+  // of different hues pile up into a grayish "ash" before they clear,
+  // including out at the scope line's ends and the ring's outer spikes.
+  // A single faster fade over the *entire* frame (not a shape carved out
+  // of it, which just moves the seam somewhere else) keeps decay uniform
+  // everywhere so nothing is ever left half-covered.
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = `rgba(0,0,0,${Math.min(0.55, PALETTE.trailAlpha * 7)})`;
+  ctx.fillRect(0, 0, W, H);
+  glowCtx.clearRect(0, 0, W, H);
+
   t += (0.004 + S.bass * 0.016) * PALETTE.speedMult;
   hueShift = (hueShift + 0.12 + S.mid * 0.55 * PALETTE.speedMult) % 360;
 
@@ -1531,7 +1544,7 @@ function drawWarp() {
   if (isLiveMode && micAnalyser) micAnalyser.getByteFrequencyData(freqData);
   else if (analyser) analyser.getByteFrequencyData(freqData);
 
-  ctx.beginPath(); let first = true;
+  const ringPath = new Path2D(); let first = true;
   for (let i = 0; i < bars; i++) {
     const idx = Math.floor((i / bars) * (freqData.length * 0.65));
     const mag = freqData[idx] / 255;
@@ -1539,47 +1552,64 @@ function drawWarp() {
     const r = baseR + mag * Math.min(W, vizH) * (0.24 + S.hi * 0.09);
     const angle = i * angleStep - Math.PI / 2 + t * 0.18;
     const wx = cx + Math.cos(angle) * r, wy = cy + Math.sin(angle) * r;
-    first ? (ctx.moveTo(wx, wy), first = false) : ctx.lineTo(wx, wy);
+    first ? (ringPath.moveTo(wx, wy), first = false) : ringPath.lineTo(wx, wy);
   }
-  ctx.closePath();
+  ringPath.closePath();
   const hBase = (PALETTE.hues[0] + hueShift) % 360;
   const hMid  = (PALETTE.hues[1] + hueShift) % 360;
   const hHi   = (PALETTE.hues[2] + hueShift) % 360;
-  const grd = ctx.createLinearGradient(0, 0, W, vizH);
-  grd.addColorStop(0,   `hsla(${hBase},${PALETTE.saturation}%,${PALETTE.lightnessBase + S.hi*15}%,0.75)`);
-  grd.addColorStop(0.5, `hsla(${hMid},${PALETTE.saturation}%,${PALETTE.lightnessBase + 5 + S.hi*15}%,0.75)`);
-  grd.addColorStop(1,   `hsla(${hHi},${PALETTE.saturation}%,${PALETTE.lightnessBase + S.hi*15}%,0.75)`);
-  ctx.strokeStyle = grd; ctx.lineWidth = 1.5 + S.bass * 4; ctx.stroke();
 
   const fillG = glowCtx.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, vizH)*0.5);
   fillG.addColorStop(0, `hsla(${hBase},80%,55%,${0.04 + S.bass * 0.07})`);
   fillG.addColorStop(1, `hsla(${hBase},80%,40%,0)`);
   glowCtx.fillStyle = fillG; glowCtx.beginPath(); glowCtx.arc(cx, cy, Math.min(W, vizH)*0.5, 0, Math.PI*2); glowCtx.fill();
 
-  glowCtx.beginPath(); first = true;
-  for (let i = 0; i < bars; i++) {
-    const idx = Math.floor((i / bars) * (freqData.length * 0.65));
-    const mag = freqData[idx] / 255;
-    const baseR = Math.min(W, vizH) * (0.15 + S.bass * 0.07);
-    const r = baseR + mag * Math.min(W, vizH) * (0.24 + S.hi * 0.09);
-    const angle = i * angleStep - Math.PI / 2 + t * 0.18;
-    const wx = cx + Math.cos(angle) * r, wy = cy + Math.sin(angle) * r;
-    first ? (glowCtx.moveTo(wx, wy), first = false) : glowCtx.lineTo(wx, wy);
-  }
-  glowCtx.closePath(); glowCtx.strokeStyle = `hsla(${hBase},100%,75%,0.2)`; glowCtx.lineWidth = 10; glowCtx.stroke();
+  // Real blurred glow on glowCtx, which is fully cleared every frame (see
+  // applyFade) — no residue. A moderate, hue-true lightness (not a pale
+  // near-white) keeps this reading as a colored glow instead of ash when it
+  // shows through the fading core stroke underneath.
+  glowCtx.save();
+  glowCtx.shadowBlur = 16 + S.bass * 14;
+  glowCtx.shadowColor = `hsla(${hBase},100%,60%,0.85)`;
+  glowCtx.strokeStyle = `hsla(${hBase},100%,58%,0.55)`;
+  glowCtx.lineWidth = 2 + S.bass * 3;
+  glowCtx.stroke(ringPath);
+  glowCtx.restore();
+
+  // The core stroke on ctx is what accumulates into the long-exposure trail
+  // (applyFade only fades ctx, not glowCtx) — kept lower-opacity so that
+  // trail stays a soft colored afterimage rather than a muddy smear.
+  const grd = ctx.createLinearGradient(0, 0, W, vizH);
+  grd.addColorStop(0,   `hsla(${hBase},${PALETTE.saturation}%,${PALETTE.lightnessBase + S.hi*15}%,0.5)`);
+  grd.addColorStop(0.5, `hsla(${hMid},${PALETTE.saturation}%,${PALETTE.lightnessBase + 5 + S.hi*15}%,0.5)`);
+  grd.addColorStop(1,   `hsla(${hHi},${PALETTE.saturation}%,${PALETTE.lightnessBase + S.hi*15}%,0.5)`);
+  ctx.strokeStyle = grd; ctx.lineWidth = 1.5 + S.bass * 4; ctx.stroke(ringPath);
 
   if (!timeData) return;
   if (isLiveMode && micAnalyser) micAnalyser.getByteTimeDomainData(timeData);
   else if (analyser) analyser.getByteTimeDomainData(timeData);
-  const wW = W * 0.48, wHh = vizH * 0.09, wX = cx - wW / 2;
-  ctx.beginPath();
+  // Span nearly the full width instead of a narrow centered strip.
+  const wW = W * 0.94, wHh = vizH * 0.09, wX = cx - wW / 2;
+  const scopePath = new Path2D();
   for (let i = 0; i < timeData.length; i++) {
     const x = wX + (i / timeData.length) * wW;
     const v = (timeData[i] / 128 - 1);
     const y = cy + v * wHh * (1 + S.mid * 1.4);
-    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    i === 0 ? scopePath.moveTo(x, y) : scopePath.lineTo(x, y);
   }
-  ctx.strokeStyle = `hsla(${hHi},100%,80%,0.55)`; ctx.lineWidth = 1 + S.hi * 2.5; ctx.stroke();
+  // Glow halo goes on glowCtx, which is fully cleared every frame (see
+  // applyFade), so the blur never leaves a residual white "ashy" smear —
+  // only the faint core line below fades gradually with the trail alpha.
+  glowCtx.save();
+  glowCtx.shadowBlur = 14 + S.hi * 12;
+  glowCtx.shadowColor = `hsla(${hHi},100%,68%,0.9)`;
+  glowCtx.strokeStyle = `hsla(${hHi},100%,68%,0.7)`;
+  glowCtx.lineWidth = 2 + S.hi * 3;
+  glowCtx.stroke(scopePath);
+  glowCtx.restore();
+
+  ctx.strokeStyle = `hsla(${hHi},${PALETTE.saturation}%,${Math.min(80, PALETTE.lightnessBase + 25)}%,0.55)`;
+  ctx.lineWidth = 1 + S.hi * 2.5; ctx.stroke(scopePath);
 
   if (S.hi > 0.38) {
     const count = Math.floor(S.hi * 14);
@@ -1661,74 +1691,184 @@ function render() {
   updateProgress();
 }
 
-// ── LLM / SENTIMENT ───────────────────────────────────
-async function callLLM(prompt) {
-  const res = await fetch('/api/vibe', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt })
-  });
-  if (!res.ok) throw new Error('LLM failed');
-  const data = await res.json();
-  return data.result;
-}
-
-function detectVibe(S) {
-  const energy = (S.bass + S.low + S.mid) / 3;
+// ── HEURISTIC VIBE DETECTION ───────────────────────────
+// Purely local/offline — no network call, no API key, nothing to configure
+// on Vercel. `S` (live bands, 0..1) drives mic mode. `extra` — zcr,
+// percussiveness, dynamics from the full-track analyzer below — drives
+// file mode with real time-domain measurements instead of spectral band
+// *position*, which (after the per-track dB normalization needed to keep
+// bass from swamping the other bands) ends up looking similar for almost
+// any track and can't tell a mellow song from a punchy one on its own.
+function detectVibe(S, extra = {}) {
   const brightness = (S.hi + S.air) / 2;
-  const aggression = S.snare + S.cymbal;
-  const warmth = S.bass + S.low;
-  const clarity = S.vocal + S.string;
+  const warmth = (S.bass + S.low) / 2;
+  const clarity = (S.vocal + S.string) / 2;
+  const aggressionShape = (S.snare + S.cymbal) / 2;
+
+  const hasFileFeatures = typeof extra.zcr === 'number';
+  // Calibration divisors are from observed ranges across varied real tracks
+  // (ambient/energetic/dark samples + several full songs): zcr ~0.02-0.12,
+  // percussiveness ~0.09-0.24, dynamics ~0.3-0.6.
+  const zcrNorm = hasFileFeatures ? Math.min(1, extra.zcr / 0.08) : brightness;
+  const percNorm = hasFileFeatures ? Math.min(1, extra.percussiveness / 0.3) : aggressionShape;
+  const dynNorm = hasFileFeatures ? Math.min(1, Math.max(0, (extra.dynamics - 0.3) / 0.35)) : 0.4;
+
+  // "energy" here means drive/brightness, not volatility — a track with big
+  // quiet-to-loud swings (high dynNorm) reads as tense/dark, not energetic,
+  // so dynamics is kept out of this composite and applied per-category below.
+  const energy = hasFileFeatures ? (zcrNorm * 0.7 + dynNorm * 0.3) : (S.bass + S.low + S.mid) / 3;
+  const percussiveness = percNorm;
+  const dynamics = dynNorm;
+  const aggression = hasFileFeatures ? percNorm : aggressionShape;
+
   const score = { energetic:0, melancholic:0, dreamy:0, euphoric:0, tense:0, serene:0, dark:0, psychedelic:0 };
-  score.energetic   += energy * 1.2 + brightness * 0.8 + aggression * 0.6;
-  score.euphoric    += energy * 1.0 + brightness * 0.6 + warmth * 0.5;
-  score.melancholic += (1-energy) * 1.2 + (1-brightness) * 0.8 + clarity * 0.5;
-  score.dreamy      += S.air * 1.2 + clarity * 0.7 + (1-aggression) * 0.5;
-  score.tense       += aggression * 1.2 + brightness * 0.5 + energy * 0.4;
-  score.dark        += (1-brightness) * 1.0 + aggression * 0.6 + (1-clarity) * 0.4;
-  score.serene      += (1-energy) * 1.2 + (1-aggression) * 0.8 + S.air * 0.4;
-  score.psychedelic += 0.3 + Math.abs(S.mid - S.hi) * 0.5 + brightness * 0.4;
+  score.energetic   += energy * 1.3 + brightness * 0.9 + percussiveness * 0.5;
+  score.euphoric    += energy * 1.0 + brightness * 0.8 + warmth * 0.4;
+  score.melancholic += (1-energy) * 1.3 + (1-brightness) * 1.0 + clarity * 0.4;
+  score.dreamy      += S.air * 1.0 + clarity * 0.6 + (1-percussiveness) * 0.35 + (1-dynamics) * 0.2;
+  score.tense       += percussiveness * 1.1 + dynamics * 0.6 + brightness * 0.5 + energy * 0.3;
+  score.dark        += (1-brightness) * 1.1 + aggression * 0.5 + dynamics * 0.3 + (1-clarity) * 0.4 + warmth * 0.2;
+  score.serene      += (1-energy) * 1.2 + (1-percussiveness) * 0.5 + S.air * 0.3 + (1-dynamics) * 0.2;
+  score.psychedelic += 0.2 + Math.abs(S.mid - S.hi) * 0.7 + brightness * 0.3 + dynamics * 0.4;
+
   let best = 'dreamy', max = -Infinity;
   for (const k in score) if (score[k] > max) { max = score[k]; best = k; }
   return best;
 }
 
+// ── OFFLINE SPECTRAL ANALYSIS ──────────────────────────
+// A small in-place FFT run over evenly-spaced windows across the *whole*
+// decoded track. This replaces reading the live analyser's instantaneous
+// state (which, at load time, is either empty or still holds the previous
+// track's values) with an actual measurement of this file's own audio.
+function fftInPlace(re, im) {
+  const n = re.length;
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len;
+    const wr0 = Math.cos(ang), wi0 = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let wr = 1, wi = 0;
+      for (let j = 0; j < len / 2; j++) {
+        const ur = re[i + j], ui = im[i + j];
+        const vr = re[i + j + len / 2] * wr - im[i + j + len / 2] * wi;
+        const vi = re[i + j + len / 2] * wi + im[i + j + len / 2] * wr;
+        re[i + j] = ur + vr; im[i + j] = ui + vi;
+        re[i + j + len / 2] = ur - vr; im[i + j + len / 2] = ui - vi;
+        const nwr = wr * wr0 - wi * wi0;
+        wi = wr * wi0 + wi * wr0;
+        wr = nwr;
+      }
+    }
+  }
+}
+
+const VIBE_FFT_SIZE = 4096;
+const VIBE_FFT_WINDOWS = 32;
+let vibeHannWindow = null;
+function getHannWindow(size) {
+  if (vibeHannWindow && vibeHannWindow.length === size) return vibeHannWindow;
+  vibeHannWindow = new Float32Array(size);
+  for (let i = 0; i < size; i++) vibeHannWindow[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (size - 1));
+  return vibeHannWindow;
+}
+
+// Same fractional-of-Nyquist boundaries as the live analyser's getBands(),
+// so the resulting field names/shape line up with `S` for detectVibe().
+const VIBE_BAND_DEFS = {
+  sub:[0,0.015], bass:[0.015,0.07], low:[0.07,0.15], mid:[0.15,0.35], hi:[0.35,0.6], air:[0.6,0.9],
+  kick:[0.005,0.025], snare:[0.04,0.09], bass_g:[0.09,0.18], vocal:[0.18,0.32], string:[0.32,0.55], cymbal:[0.55,0.85]
+};
+
+async function analyzeAudioFeatures(buffer) {
+  const ch0 = buffer.getChannelData(0);
+  const size = VIBE_FFT_SIZE;
+  const win = getHannWindow(size);
+  const bins = size / 2;
+  const bandDbSums = {};
+  for (const k in VIBE_BAND_DEFS) bandDbSums[k] = 0;
+  let centroidSum = 0, magSum = 0, totalRms = 0, zc = 0;
+  let minDb = Infinity, maxDb = -Infinity;
+  const frameRms = [];
+
+  const usable = Math.max(0, ch0.length - size);
+  const windows = Math.min(VIBE_FFT_WINDOWS, Math.max(1, Math.floor(ch0.length / size)));
+  const re = new Float32Array(size), im = new Float32Array(size);
+
+  for (let w = 0; w < windows; w++) {
+    const start = windows > 1 ? Math.floor((w / (windows - 1)) * usable) : 0;
+    let frameRmsSum = 0;
+    for (let i = 0; i < size; i++) {
+      const s = ch0[start + i] || 0;
+      re[i] = s * win[i]; im[i] = 0;
+      frameRmsSum += s * s; totalRms += s * s;
+      if (i > 0 && ch0[start + i] * ch0[start + i - 1] < 0) zc++;
+    }
+    frameRms.push(Math.sqrt(frameRmsSum / size));
+    fftInPlace(re, im);
+    for (let b = 0; b < bins; b++) {
+      const mag = Math.sqrt(re[b] * re[b] + im[b] * im[b]);
+      const frac = b / bins;
+      magSum += mag; centroidSum += mag * frac;
+      // Convert to dB, same as AnalyserNode.getByteFrequencyData(), so bass
+      // (naturally much louder in linear terms for almost all real audio)
+      // doesn't swamp the mid/high bands and crush "brightness" to zero.
+      const db = 20 * Math.log10(mag + 1e-8);
+      if (db < minDb) minDb = db;
+      if (db > maxDb) maxDb = db;
+      for (const key in VIBE_BAND_DEFS) {
+        const [lo, hi] = VIBE_BAND_DEFS[key];
+        if (frac >= lo && frac < hi) bandDbSums[key] += db;
+      }
+    }
+  }
+
+  const bandCounts = {};
+  for (const key in VIBE_BAND_DEFS) {
+    const [lo, hi] = VIBE_BAND_DEFS[key];
+    bandCounts[key] = Math.max(1, Math.round(hi * bins) - Math.round(lo * bins));
+  }
+  const dbRange = Math.max(1e-6, maxDb - minDb);
+  const bands = {};
+  for (const key in bandDbSums) {
+    const avgDb = bandDbSums[key] / (windows * bandCounts[key]);
+    bands[key] = Math.max(0, Math.min(1, (avgDb - minDb) / dbRange));
+  }
+
+  const totalSamples = windows * size;
+  const rms = Math.sqrt(totalRms / totalSamples);
+  const zcr = zc / totalSamples;
+  const centroid = magSum > 0 ? centroidSum / magSum : 0;
+
+  const meanFrameRms = frameRms.reduce((a,b) => a+b, 0) / frameRms.length;
+  let flux = 0;
+  for (let i = 1; i < frameRms.length; i++) flux += Math.max(0, frameRms[i] - frameRms[i-1]);
+  const percussiveness = meanFrameRms > 0 ? Math.min(1, (flux / frameRms.length) / meanFrameRms) : 0;
+  const variance = frameRms.reduce((a,b) => a + (b-meanFrameRms)**2, 0) / frameRms.length;
+  const dynamics = meanFrameRms > 0 ? Math.min(1, Math.sqrt(variance) / meanFrameRms) : 0;
+
+  return { ...bands, rms, zcr, centroid, percussiveness, dynamics, duration: buffer.duration };
+}
+
 // ── VIBE CACHE ────────────────────────────────────────
 // Keyed by normalized filename (no extension, lowercase).
-// Structure: Map<string, { vibe: string, palette: object }>
 const vibeCache = new Map();
 function vibeCacheKey(filename) {
   return filename.replace(/\.[^.]+$/, '').toLowerCase().trim();
 }
 
-async function analyzeVibe(filename, profile) {
+async function analyzeVibe(filename, features) {
   const key = vibeCacheKey(filename);
-  if (vibeCache.has(key)) {
-    const cached = vibeCache.get(key);
-    return cached.vibe;
-  }
-
-  const rms = parseFloat(profile.rms), zcr = parseFloat(profile.zcr);
-  const prompt = `Song: "${filename}"\nRMS: ${rms}\nZCR: ${zcr}\nEnergy: bass=${S.bass.toFixed(2)}, mid=${S.mid.toFixed(2)}, hi=${S.hi.toFixed(2)}\n\nReturn ONE word:\neuphoric, melancholic, energetic, dreamy, tense, serene, dark, psychedelic\n`;
-  let vibe;
-  try {
-    const llmVibe = await callLLM(prompt);
-    if (llmVibe) vibe = llmVibe.trim().toLowerCase(); else throw new Error('Empty');
-  } catch(e) { console.log('LLM failed, heuristic:', e.message); vibe = detectVibe(S); }
-  if (!VIBE_PALETTES[vibe]) vibe = detectVibe(S);
-
+  if (vibeCache.has(key)) return vibeCache.get(key).vibe;
+  let vibe = detectVibe(features, features);
+  if (!VIBE_PALETTES[vibe]) vibe = 'psychedelic';
   vibeCache.set(key, { vibe });
   return vibe;
-}
-
-async function estimateEnergyProfile(buffer) {
-  const sr = buffer.sampleRate;
-  const samples = buffer.getChannelData(0).slice(0, Math.min(sr * 30, buffer.length));
-  let rms = 0;
-  for (let i = 0; i < samples.length; i++) rms += samples[i] * samples[i];
-  rms = Math.sqrt(rms / samples.length);
-  let zc = 0;
-  for (let i = 1; i < samples.length; i++) if (samples[i] * samples[i-1] < 0) zc++;
-  return { rms: rms.toFixed(3), zcr: (zc / samples.length).toFixed(4), duration: buffer.duration.toFixed(1) };
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1904,6 +2044,14 @@ document.getElementById('live-fs-btn').addEventListener('click', () => {
 });
 
 // ── QUEUE ──────────────────────────────────────────────
+function setShuffleMode(on) {
+  shuffleMode = on;
+  shuffleOrder = on ? shuffleOrder : [];
+  const btn = document.getElementById('shuffle-btn');
+  if (btn) { btn.classList.toggle('active', on); btn.title = on ? 'Shuffle: on' : 'Shuffle'; }
+  if (on) generateShuffleOrder();
+}
+
 function generateShuffleOrder() {
   shuffleOrder = [...Array(queue.length).keys()];
   for (let i = shuffleOrder.length - 1; i > 0; i--) {
@@ -1957,12 +2105,22 @@ function removeFromQueue(idx) {
 
 function moveQueueItem(fromIdx, toIdx) {
   if (fromIdx === toIdx) return;
+  if (shuffleMode) {
+    // Reorder the upcoming play sequence itself — the underlying queue
+    // array (and its original track numbers) stays untouched while shuffled.
+    const fromPos = shuffleOrder.indexOf(fromIdx);
+    const toPos = shuffleOrder.indexOf(toIdx);
+    if (fromPos < 0 || toPos < 0) return;
+    const [item] = shuffleOrder.splice(fromPos, 1);
+    shuffleOrder.splice(toPos, 0, item);
+    renderQueuePanel();
+    return;
+  }
   const [item] = queue.splice(fromIdx, 1);
   queue.splice(toIdx, 0, item);
   if (fromIdx === queueIndex) queueIndex = toIdx;
   else if (fromIdx < queueIndex && toIdx >= queueIndex) queueIndex--;
   else if (fromIdx > queueIndex && toIdx <= queueIndex) queueIndex++;
-  if (shuffleMode) generateShuffleOrder();
   renderQueuePanel();
 }
 
@@ -2006,7 +2164,15 @@ function renderQueuePanel() {
     } else nextLbl.classList.remove('show');
   }
   list.innerHTML = '';
-  queue.forEach((file, idx) => {
+  // While shuffled, show tracks in the actual upcoming play order instead
+  // of the underlying queue array order — otherwise "up next" and the
+  // visible list disagree even though the real playback order is correct.
+  const displayOrder = shuffleMode && shuffleOrder.length === queue.length
+    ? shuffleOrder
+    : queue.map((_, i) => i);
+  displayOrder.forEach((idx, pos) => {
+    const file = queue[idx];
+    if (!file) return;
     const item = document.createElement('div');
     item.className = 'queue-item' + (idx === queueIndex ? ' active' : '');
     item.dataset.idx = idx;
@@ -2016,7 +2182,7 @@ function renderQueuePanel() {
       <div class="queue-drag-handle" title="Drag">⠿</div>
       <div class="queue-item-info">
         <div class="queue-item-name" title="${file.name}">${nameClean}</div>
-        <div class="queue-item-num">${idx === queueIndex ? '▶ now playing' : `#${idx + 1}`}</div>
+        <div class="queue-item-num">${idx === queueIndex ? '▶ now playing' : `#${pos + 1}`}</div>
       </div>
       ${idx === queueIndex ? '<div class="queue-now-playing">●</div>' : ''}
       <button class="queue-item-remove" data-idx="${idx}" title="Remove">×</button>
@@ -2053,9 +2219,9 @@ async function loadAndPlay(file) {
   document.getElementById('analysis-status').textContent = 'Analyzing frequencies…';
   audioBuffer = await audioCtx.decodeAudioData(ab);
 
-  const profile = await estimateEnergyProfile(audioBuffer);
+  const features = await analyzeAudioFeatures(audioBuffer);
   document.getElementById('analysis-status').textContent = 'Reading the vibe…';
-  const vibe = await analyzeVibe(file.name, profile);
+  const vibe = await analyzeVibe(file.name, features);
   PALETTE = { ...VIBE_PALETTES[vibe] || VIBE_PALETTES.psychedelic };
 
   analysis.classList.add('off');
@@ -2078,6 +2244,15 @@ async function loadAndPlay(file) {
   document.getElementById('song-lbl').textContent = file.name.replace(/\.[^.]+$/, '');
   document.getElementById('progress-fill').style.background = PALETTE.pillColor?.replace('0.7', '1') || '#fff';
 
+  if (hasMediaSession) {
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: file.name.replace(/\.[^.]+$/, ''),
+        artist: 'Funky Monkey Visualizer'
+      });
+    } catch(e){}
+  }
+
   hueShift = 0; t = 0; peakFlash = 0;
   initAudio();
   playFrom(0);
@@ -2089,6 +2264,27 @@ async function loadAndPlay(file) {
 let userPaused = false;
 function setPlayBtn(playing) { document.getElementById('play-btn').textContent = playing ? '⏸' : '▶'; }
 
+// ── MEDIA SESSION (OS/lock-screen/headset controls) ────
+// AudioBufferSourceNode playback is invisible to the OS by default — without
+// this, hardware media keys (earbud play/pause, keyboard media keys) have
+// nothing to talk to.
+const hasMediaSession = 'mediaSession' in navigator;
+if (hasMediaSession) {
+  navigator.mediaSession.setActionHandler('play', () => togglePlay());
+  navigator.mediaSession.setActionHandler('pause', () => togglePlay());
+  navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
+  navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
+  try { navigator.mediaSession.setActionHandler('stop', () => { if (isPlaying) togglePlay(); }); } catch(e){}
+  try {
+    navigator.mediaSession.setActionHandler('seekto', details => {
+      if (audioBuffer && typeof details.seekTime === 'number') playFrom(details.seekTime);
+    });
+  } catch(e){}
+}
+function setMediaSessionPlaybackState(state) {
+  if (hasMediaSession) navigator.mediaSession.playbackState = state;
+}
+
 function playFrom(offset) {
   if (source) { source.onended = null; try { source.stop(); } catch(e){} source = null; }
   source = audioCtx.createBufferSource();
@@ -2098,12 +2294,14 @@ function playFrom(offset) {
   startTime = audioCtx.currentTime - offset;
   isPlaying = true; userPaused = false;
   setPlayBtn(true);
+  setMediaSessionPlaybackState('playing');
   source.onended = () => {
     if (isPlaying && !userPaused) {
       isPlaying = false; pauseOffset = 0; setPlayBtn(false);
       if (repeatMode === 'one') { setTimeout(() => playFrom(0), 200); return; }
       const next = getNextIndex();
       if (next >= 0) setTimeout(() => playQueueIndex(next), 300);
+      else setMediaSessionPlaybackState('paused');
     }
   };
 }
@@ -2116,6 +2314,7 @@ function togglePlay() {
     userPaused = true; isPlaying = false;
     if (source) { source.onended = null; try { source.stop(); } catch(e){} source = null; }
     setPlayBtn(false);
+    setMediaSessionPlaybackState('paused');
   } else {
     playFrom(pauseOffset);
   }
@@ -2234,9 +2433,7 @@ document.getElementById('file-input').addEventListener('change', e => {
   const files = Array.from(e.target.files);
   if (files.length === 0) return;
   homeAnimActive = false;
-  queue = files; queueIndex = 0; shuffleMode = false;
-  document.getElementById('queue-shuffle-btn').classList.remove('active');
-  shuffleOrder = [];
+  queue = files; queueIndex = 0; setShuffleMode(false);
   loadAndPlay(queue[0]);
 });
 
@@ -2248,7 +2445,7 @@ document.addEventListener('drop', e => {
   const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('audio/') || f.name.match(/\.(mp3|wav|wave|ogg|oga|flac|aac|m4a|mp4|aiff|aif|wma|opus|webm|caf|3gp|amr)$/i));
   if (files.length === 0) return;
   homeAnimActive = false;
-  queue = files; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
+  queue = files; queueIndex = 0; setShuffleMode(false);
   loadAndPlay(queue[0]);
 });
 
@@ -2262,10 +2459,9 @@ document.getElementById('queue-close-btn').addEventListener('click', () => {
   document.getElementById('queue-panel').classList.remove('open');
   document.getElementById('queue-btn-transport')?.classList.remove('active');
 });
-document.getElementById('queue-shuffle-btn').addEventListener('click', () => {
-  shuffleMode = !shuffleMode;
-  document.getElementById('queue-shuffle-btn').classList.toggle('active', shuffleMode);
-  if (shuffleMode) generateShuffleOrder(); else shuffleOrder = [];
+document.getElementById('shuffle-btn').addEventListener('click', () => {
+  setShuffleMode(!shuffleMode);
+  renderQueuePanel();
 });
 document.getElementById('queue-add-local-btn').addEventListener('click', () => document.getElementById('queue-file-input').click());
 document.getElementById('queue-file-input').addEventListener('change', e => {
@@ -2296,7 +2492,7 @@ document.getElementById('back-btn').addEventListener('click', () => {
   document.getElementById('file-input').value = '';
   document.getElementById('queue-panel').classList.remove('open');
   queuePanelOpen = false;
-  queue = []; queueIndex = -1; shuffleOrder = [];
+  queue = []; queueIndex = -1; setShuffleMode(false);
   hueShift = 0; t = 0; peakFlash = 0;
   homeAnimActive = true;
   if (!homeAnimRunning) startHomeAnim();
@@ -2409,7 +2605,7 @@ document.querySelectorAll('.sample-btn').forEach(btn => {
       const file = new File([blob], name, { type: blob.type || 'audio/mpeg' });
       homeAnimActive = false;
       nameEl.textContent = origName; btn.style.pointerEvents = '';
-      queue = [file]; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
+      queue = [file]; queueIndex = 0; setShuffleMode(false);
       loadAndPlay(file);
     } catch(err) {
       console.error('Sample load failed:', err);
@@ -2685,7 +2881,7 @@ startHomeAnim();
       } else {
         closeModal();
         homeAnimActive = false;
-        queue = [file]; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
+        queue = [file]; queueIndex = 0; setShuffleMode(false);
         loadAndPlay(file);
       }
       if (itemEl) { itemEl.classList.remove('loading-item'); itemEl.querySelector('.gdrive-item-icon').textContent = getGlyph(f.name); }
@@ -2717,7 +2913,7 @@ startHomeAnim();
     if (queue.length === 0 && queueIndex < 0) {
       // Nothing playing yet — start it
       homeAnimActive = false;
-      queue = [first]; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
+      queue = [first]; queueIndex = 0; setShuffleMode(false);
       loadAndPlay(first);
     } else {
       addFilesToQueue([first]);
@@ -2745,7 +2941,7 @@ startHomeAnim();
       const first = await downloadDriveFile(driveEntries[0]);
       closeModal();
       homeAnimActive = false;
-      queue = [first]; queueIndex = 0; shuffleMode = false; shuffleOrder = [];
+      queue = [first]; queueIndex = 0; setShuffleMode(false);
       loadAndPlay(first);
 
       // Load rest in background, appending as they arrive
